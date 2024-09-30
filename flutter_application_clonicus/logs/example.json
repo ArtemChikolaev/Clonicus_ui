@@ -1,0 +1,31 @@
+{"coordinates":[
+"Широта'(GPS): 48.1499987 °, Долгота'(GPS): 11.5833353 °, Высота'(GPS): 507.9616 м, СКО'(GPS): 0.40 м, PDOP'(GPS): 2.70",
+"Широта'(GLN): 48.1499815 °, Долгота'(GLN): 11.5833336 °, Высота'(GLN): 510.3666 м, СКО'(GLN): 0.66 м, PDOP'(GLN): 3.40",
+"Широта'(GAL): 48.1500016 °, Долгота'(GAL): 11.5833344 °, Высота'(GAL): 508.1654 м, СКО'(GAL): 0.20 м, PDOP'(GAL): 2.30",
+"Широта'(BDS): 48.1499995 °, Долгота'(BDS): 11.5833338 °, Высота'(BDS): 507.9752 м, СКО'(BDS): 0.28 м, PDOP'(BDS): 2.20"
+],
+"dataF5Queue":[
+"Навигационный сигнал: GlnL1OF, НКА: 2, ОСШ: 43","Навигационный сигнал: GlnL1OF, НКА: 8, ОСШ: 38",
+"Навигационный сигнал: GlnL1OF, НКА: 14, ОСШ: 43","Навигационный сигнал: GlnL1OF, НКА: 17, ОСШ: 40",
+"Навигационный сигнал: GlnL1OF, НКА: 23, ОСШ: 40","Навигационный сигнал: GlnL1OF, НКА: 24, ОСШ: 40",
+"Навигационный сигнал: GpsL1CA, НКА: 3, ОСШ: 43","Навигационный сигнал: GpsL1CA, НКА: 6, ОСШ: 43",
+"Навигационный сигнал: GpsL1CA, НКА: 16, ОСШ: 43","Навигационный сигнал: GpsL1CA, НКА: 19, ОСШ: 43",
+"Навигационный сигнал: GpsL1CA, НКА: 21, ОСШ: 43","Навигационный сигнал: GpsL1CA, НКА: 22, ОСШ: 43",
+"Навигационный сигнал: GpsL1CA, НКА: 27, ОСШ: 43","Навигационный сигнал: GalE1B, НКА: 2, ОСШ: 36",
+"Навигационный сигнал: GalE1B, НКА: 3, ОСШ: 37","Навигационный сигнал: GalE1B, НКА: 4, ОСШ: 36",
+"Навигационный сигнал: GalE1B, НКА: 19, ОСШ: 39","Навигационный сигнал: GalE1B, НКА: 26, ОСШ: 39",
+"Навигационный сигнал: GalE1B, НКА: 28, ОСШ: 38","Навигационный сигнал: GalE1B, НКА: 30, ОСШ: 36",
+"Навигационный сигнал: BdsB1I, НКА: 7, ОСШ: 41","Навигационный сигнал: BdsB1I, НКА: 9, ОСШ: 41",
+"Навигационный сигнал: BdsB1I, НКА: 13, ОСШ: 41","Навигационный сигнал: BdsB1I, НКА: 14, ОСШ: 41",
+"Навигационный сигнал: BdsB1I, НКА: 15, ОСШ: 41","Навигационный сигнал: BdsB1I, НКА: 27, ОСШ: 41",
+"Навигационный сигнал: BdsB1I, НКА: 28, ОСШ: 41","Навигационный сигнал: BdsB1I, НКА: 29, ОСШ: 41"
+],
+"data55Queue":[
+{"systemNumber":"GPS","satelliteNumber":"03","elevation":"067.086","azimuth":"292.689"},{"systemNumber":"GPS","satelliteNumber":"06","elevation":"083.526","azimuth":"148.187"},{"systemNumber":"GPS","satelliteNumber":"16","elevation":"046.035","azimuth":"208.586"},{"systemNumber":"GPS","satelliteNumber":"19","elevation":"044.560","azimuth":"299.553"},{"systemNumber":"GPS","satelliteNumber":"21","elevation":"023.181","azimuth":"070.640"},{"systemNumber":"GPS","satelliteNumber":"22","elevation":"061.661","azimuth":"130.440"},{"systemNumber":"GPS","satelliteNumber":"27","elevation":"083.640","azimuth":"302.885"},{"systemNumber":"GLN","satelliteNumber":"02","elevation":"009.422","azimuth":"181.119"},{"systemNumber":"GLN","satelliteNumber":"08","elevation":"045.091","azimuth":"051.733"},{"systemNumber":"GLN","satelliteNumber":"14","elevation":"012.905","azimuth":"244.559"},{"systemNumber":"GLN","satelliteNumber":"15","elevation":"025.499","azimuth":"297.875"},{"systemNumber":"GLN","satelliteNumber":"17","elevation":"026.212","azimuth":"301.940"},{"systemNumber":"GLN","satelliteNumber":"18","elevation":"028.228","azimuth":"302.147"},{"systemNumber":"GLN","satelliteNumber":"23","elevation":"035.994","azimuth":"093.737"},{"systemNumber":"GLN","satelliteNumber":"24","elevation":"070.662","azimuth":"008.728"},{"systemNumber":"GAL","satelliteNumber":"02","elevation":"073.786","azimuth":"299.171"},{"systemNumber":"GAL","satelliteNumber":"03","elevation":"055.654","azimuth":"129.291"},{"systemNumber":"GAL","satelliteNumber":"04","elevation":"010.434","azimuth":"126.862"},{"systemNumber":"GAL","satelliteNumber":"19","elevation":"031.775","azimuth":"048.636"},{"systemNumber":"GAL","satelliteNumber":"26","elevation":"043.740","azimuth":"192.438"},{"systemNumber":"GAL","satelliteNumber":"28","elevation":"049.221","azimuth":"303.745"},{"systemNumber":"GAL","satelliteNumber":"30","elevation":"022.707","azimuth":"203.011"},{"systemNumber":"BDS","satelliteNumber":"07","elevation":"023.678","azimuth":"043.624"},{"systemNumber":"BDS","satelliteNumber":"09","elevation":"037.308","azimuth":"071.394"},{"systemNumber":"BDS","satelliteNumber":"13","elevation":"028.499","azimuth":"311.723"},{"systemNumber":"BDS","satelliteNumber":"14","elevation":"060.437","azimuth":"246.954"},{"systemNumber":"BDS","satelliteNumber":"15","elevation":"031.532","azimuth":"175.894"},{"systemNumber":"BDS","satelliteNumber":"27","elevation":"038.123","azimuth":"244.855"},{"systemNumber":"BDS","satelliteNumber":"28","elevation":"083.415","azimuth":"044.321"},{"systemNumber":"BDS","satelliteNumber":"29","elevation":"028.692","azimuth":"061.601"}
+],
+"velocityQueue":[
+{"systemName":"GPS","velocity":"0.031070179"},
+{"systemName":"GLN","velocity":"0.022685846"},
+{"systemName":"GAL","velocity":"0.017834645"},{"systemName":"BDS","velocity":"0.017926721"}
+],
+"timestamp":"2024-08-15T13:26:44.419671"}
