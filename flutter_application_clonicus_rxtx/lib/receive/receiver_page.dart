@@ -4,9 +4,13 @@ import 'receiver_50packet_widget_coord.dart';
 // import 'receiver_55packet.dart';
 import 'receiver_50packet_widget_map.dart';
 import 'receiver_50packet_widget_marker.dart';
+import 'receiver_50packet_widget_speed.dart';
 import 'receiver_notifier.dart';
 import 'package:flutter_application_clonicus_rxtx/tcp_client/tcp_provider.dart';
 import 'receiver_f5packet_widget_sumsat.dart';
+// import 'receiver_widget_copy_coord_button.dart';
+import 'receiver_widget_market_texfield.dart';
+import 'receiver_widget_time.dart';
 
 class ReceiverPage extends StatefulWidget {
   const ReceiverPage({super.key});
@@ -85,6 +89,15 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
               const Receiver50PacketCoord(),
 
               const SizedBox(height: 20),
+              const Receiver50PacketTow(),
+
+              const SizedBox(height: 20),
+              const Receiver50PacketAbsV(),
+
+              // const SizedBox(height: 20),
+              // CopyCoordinatesButton(),
+
+              const SizedBox(height: 20),
               const Receiver50PacketMap(),
 
               const SizedBox(height: 20),
@@ -104,6 +117,8 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                   );
                 },
               ),
+              const SizedBox(height: 20),
+              const ReceiverWidgetMarkerTextField(),
               // const SizedBox(height: 20),
               // const ReceiverF5Packet(),
               // const SizedBox(height: 20),

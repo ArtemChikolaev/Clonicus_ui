@@ -3,20 +3,20 @@ import 'package:latlong2/latlong.dart';
 import 'dart:math';
 
 class MarkerDistanceDisplay extends StatelessWidget {
-  final LatLng? markerLocation; // Координаты маркера
-  final double? markerHeight; // Высота маркера
+  final LatLng? markerLocation;
+  final double? markerHeight;
 
-  final LatLng? currentLocationGPS; // Текущие координаты GPS
-  final double? currentHeightGPS; // Текущая высота GPS
-  final LatLng? currentLocationGLN; // Текущие координаты GLN
-  final double? currentHeightGLN; // Текущая высота GLN
-  final LatLng? currentLocationGAL; // Текущие координаты GAL
-  final double? currentHeightGAL; // Текущая высота GAL
-  final LatLng? currentLocationBDS; // Текущие координаты BDS
-  final double? currentHeightBDS; // Текущая высота BDS
+  final LatLng? currentLocationGPS;
+  final double? currentHeightGPS;
+  final LatLng? currentLocationGLN;
+  final double? currentHeightGLN;
+  final LatLng? currentLocationGAL;
+  final double? currentHeightGAL;
+  final LatLng? currentLocationBDS;
+  final double? currentHeightBDS;
 
   const MarkerDistanceDisplay({
-    Key? key,
+    super.key,
     required this.markerLocation,
     required this.markerHeight,
     this.currentLocationGPS,
@@ -27,11 +27,11 @@ class MarkerDistanceDisplay extends StatelessWidget {
     this.currentHeightGAL,
     this.currentLocationBDS,
     this.currentHeightBDS,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Проверяем, есть ли координаты маркера
+    // Проверяем наличие координат маркера, если маркер не установлен — возвращаем пустой виджет
     if (markerLocation == null) {
       return const SizedBox.shrink(); // Не отображаем ничего, если маркер не установлен
     }
@@ -47,7 +47,7 @@ class MarkerDistanceDisplay extends StatelessWidget {
         const Divider(),
         const SizedBox(height: 2),
         SelectableText(
-          'Координаты маркера: ${markerLocation!.latitude.toStringAsFixed(7)}, ${markerLocation!.longitude.toStringAsFixed(7)}${markerHeight != null ? ', ${markerHeight!.toStringAsFixed(2)} м' : ''}',
+          'Координаты маркера: ${markerLocation!.latitude.toStringAsFixed(7)}°, ${markerLocation!.longitude.toStringAsFixed(7)}°${markerHeight != null ? ', ${markerHeight!.toStringAsFixed(2)} м' : ''}',
           style: const TextStyle(fontSize: 12, color: Colors.black),
         ),
         if (distanceToMarkerGPS != null)

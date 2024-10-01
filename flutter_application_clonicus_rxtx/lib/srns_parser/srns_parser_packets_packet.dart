@@ -85,7 +85,7 @@ List<Map<String, dynamic>> packetParser50(Uint8List data) {
     // Добавляем пакет в список
     parsedPackets.add({
       'WN': packet.WN,
-      'TOW': packet.TOW,
+      'TOW': packet.TOW / 1000,
       'NavSys': navSys,
       'Status': (packet.statAndSys >> 16) & 0xFF,
       'Latitude': packet.lat,

@@ -19,6 +19,7 @@ class _Receiver50PacketMapState extends State<Receiver50PacketMap> {
   // LatLng _currentCenter = const LatLng(55.751244, 37.618423); // Начальное положение
   LatLng _currentCenter = const LatLng(48.15, 11.58); // Начальное положение
   bool _initialZoomSet = false; // Флаг для определения, был ли уже установлен начальный зум
+  bool _isUserInput = true;
 
   final TextEditingController _coordsController = TextEditingController();
   LatLng? _markerLocation;
@@ -61,27 +62,14 @@ class _Receiver50PacketMapState extends State<Receiver50PacketMap> {
                 child: Stack(
                   children: [
                     FlutterMap(
-                      mapController: _mapController, // Подключаем контроллер карты
+                      mapController: _mapController,
                       options: MapOptions(
                         initialCenter: _currentCenter,
                         initialZoom: _mapZoom,
                         onTap: (tapPosition, point) {
-                          setState(() {
-                            _markerLocation = point;
-
-                            // Обновляем данные в ReceiverNotifier
-                            final receiverNotifier = Provider.of<ReceiverNotifier>(context, listen: false);
-                            receiverNotifier.setMarkerLocation(point);
-
-                            // Проверяем, не равна ли _markerHeight null, прежде чем устанавливать его
-                            if (_markerHeight != null) {
-                              receiverNotifier.setMarkerHeight(_markerHeight!); // Безопасно использовать _markerHeight!
-                            }
-                            // _updateDistancesToMarker(); // Обновляем расстояния до маркера
-                            if (_isInputFieldVisible) {
-                              _coordsController.text = '${point.latitude.toStringAsFixed(7)}, ${point.longitude.toStringAsFixed(7)}';
-                            }
-                          });
+                          receiverNotifier.setMarkerLocation(point);
+                          _coordsController.text = '${point.latitude.toStringAsFixed(7)}, ${point.longitude.toStringAsFixed(7)}';
+                          _isUserInput = false; // Сбрасываем флаг ввода вручную
                         },
                       ),
                       children: [
@@ -93,12 +81,11 @@ class _Receiver50PacketMapState extends State<Receiver50PacketMap> {
                             'c'
                           ],
                         ),
-                        // Добавляем черный маркер в точке нажатия
-                        if (_markerLocation != null)
+                        if (receiverNotifier.markerLocation != null)
                           MarkerLayer(
                             markers: [
                               Marker(
-                                point: _markerLocation!,
+                                point: receiverNotifier.markerLocation!,
                                 width: 80.0,
                                 height: 80.0,
                                 child: const Icon(

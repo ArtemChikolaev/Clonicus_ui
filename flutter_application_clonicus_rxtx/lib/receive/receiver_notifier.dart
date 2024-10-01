@@ -111,13 +111,17 @@ class ReceiverNotifier extends ChangeNotifier {
   LatLng? get markerLocation => _markerLocation;
   double? get markerHeight => _markerHeight;
 
-  void setMarkerLocation(LatLng location) {
+  // Установка маркера с координатами
+  void setMarkerLocation(LatLng location, {double? height}) {
     _markerLocation = location;
-    notifyListeners(); // Уведомляем слушателей об изменении
+    _markerHeight = height;
+    notifyListeners();
   }
 
-  void setMarkerHeight(double height) {
-    _markerHeight = height;
+  // Удаление маркера
+  void removeMarker() {
+    _markerLocation = null;
+    _markerHeight = null;
     notifyListeners(); // Уведомляем слушателей об изменении
   }
 

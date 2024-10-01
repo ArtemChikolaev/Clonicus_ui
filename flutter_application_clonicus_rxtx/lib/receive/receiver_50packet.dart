@@ -258,7 +258,7 @@ void _processNavSystemData(
 
   // Если скорость меньше 1, выводим усредненные данные
   if (velocity < 1) {
-    LatLng averageLocation = _calculateAverageLatLng(recentLocations.toList());
+    // LatLng averageLocation = _calculateAverageLatLng(recentLocations.toList());
     double averageLatitude = _calculateAverage(latitudes);
     double averageLongitude = _calculateAverage(longitudes);
     double averageHeight = _calculateAverage(heights);
@@ -281,6 +281,23 @@ void _processNavSystemData(
   }
 }
 
+Future<String?> readLastTowFromFiftyPacket(List<String> rawData) async {
+  List<FiftyPacketData> packetDataList = filterFiftyPacketData(rawData);
+
+  String? lastTow;
+
+  // Проходим по каждому объекту класса FiftyPacketData
+  for (var packet in packetDataList) {
+    if (lastTow == null || packet.tow.toString() != lastTow) {
+      // Если нашли новое значение TOW, обновляем
+      lastTow = packet.tow.toString();
+      // print('Новое значение TOW: $lastTow');
+    }
+  }
+
+  return lastTow;
+}
+
 double _calculateAverage(List<double> values) {
   double sum = 0.0;
   for (var value in values) {
@@ -289,14 +306,58 @@ double _calculateAverage(List<double> values) {
   return sum / values.length;
 }
 
-LatLng _calculateAverageLatLng(List<LatLng> locations) {
-  double sumLat = 0.0;
-  double sumLng = 0.0;
-  for (var location in locations) {
-    sumLat += location.latitude;
-    sumLng += location.longitude;
+// LatLng _calculateAverageLatLng(List<LatLng> locations) {
+//   double sumLat = 0.0;
+//   double sumLng = 0.0;
+//   for (var location in locations) {
+//     sumLat += location.latitude;
+//     sumLng += location.longitude;
+//   }
+//   double avgLat = sumLat / locations.length;
+//   double avgLng = sumLng / locations.length;
+//   return LatLng(avgLat, avgLng);
+// }
+
+// Очереди для хранения последних значений скорости для каждой системы
+final Queue<double> absVGPSQueue = Queue();
+final Queue<double> absVGLNQueue = Queue();
+final Queue<double> absVGALQueue = Queue();
+final Queue<double> absVBDSQueue = Queue();
+
+// Максимальный размер очереди (например, 10 последних значений)
+const int maxQueueSize = 10;
+
+void updateAbsVQueues(FiftyPacketData packet) {
+  switch (packet.navSys) {
+    case 'GPS':
+      _updateQueue(absVGPSQueue, packet.absV);
+      break;
+    case 'GLN':
+      _updateQueue(absVGLNQueue, packet.absV);
+      break;
+    case 'GAL':
+      _updateQueue(absVGALQueue, packet.absV);
+      break;
+    case 'BDS':
+      _updateQueue(absVBDSQueue, packet.absV);
+      break;
   }
-  double avgLat = sumLat / locations.length;
-  double avgLng = sumLng / locations.length;
-  return LatLng(avgLat, avgLng);
+}
+
+void _updateQueue(Queue<double> queue, double newValue) {
+  // Если очередь заполнена, удаляем самое старое значение
+  if (queue.length >= maxQueueSize) {
+    queue.removeFirst();
+  }
+  // Добавляем новое значение
+  queue.add(newValue);
+}
+
+Future<void> velocityFiftyPacketData(List<String> rawData) async {
+  List<FiftyPacketData> packetDataList = filterFiftyPacketData(rawData);
+
+  // Проходим по каждому объекту класса FiftyPacketData и обновляем очереди
+  for (var packet in packetDataList) {
+    updateAbsVQueues(packet);
+  }
 }
