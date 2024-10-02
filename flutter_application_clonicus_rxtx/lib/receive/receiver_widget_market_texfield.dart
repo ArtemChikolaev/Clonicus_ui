@@ -7,10 +7,10 @@ class ReceiverWidgetMarkerTextField extends StatefulWidget {
   const ReceiverWidgetMarkerTextField({super.key});
 
   @override
-  _ReceiverWidgetMarkerTextFieldState createState() => _ReceiverWidgetMarkerTextFieldState();
+  ReceiverWidgetMarkerTextFieldState createState() => ReceiverWidgetMarkerTextFieldState();
 }
 
-class _ReceiverWidgetMarkerTextFieldState extends State<ReceiverWidgetMarkerTextField> {
+class ReceiverWidgetMarkerTextFieldState extends State<ReceiverWidgetMarkerTextField> {
   final TextEditingController _coordsController = TextEditingController();
   bool _isInputFieldVisible = false;
   bool _isUserInput = false;
@@ -28,22 +28,6 @@ class _ReceiverWidgetMarkerTextFieldState extends State<ReceiverWidgetMarkerText
 
     return Column(
       children: [
-        const SizedBox(height: 20),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              // Удаляем маркер с карты
-              receiverNotifier.removeMarker();
-              _coordsController.clear(); // Очищаем текстовое поле
-              _currentHeight = null; // Сбрасываем высоту
-              _isUserInput = false; // Сбрасываем флаг пользовательского ввода
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 252, 149, 142),
-            ),
-            child: const Text('Удалить маркер'),
-          ),
-        ),
         const SizedBox(height: 20),
         Center(
           child: ElevatedButton(

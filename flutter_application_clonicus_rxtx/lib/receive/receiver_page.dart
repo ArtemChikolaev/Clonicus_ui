@@ -8,7 +8,8 @@ import 'receiver_50packet_widget_speed.dart';
 import 'receiver_notifier.dart';
 import 'package:flutter_application_clonicus_rxtx/tcp_client/tcp_provider.dart';
 import 'receiver_f5packet_widget_sumsat.dart';
-// import 'receiver_widget_copy_coord_button.dart';
+import 'receiver_widget_copy_coord_button.dart';
+import 'receiver_widget_delete_marker.dart';
 import 'receiver_widget_market_texfield.dart';
 import 'receiver_widget_time.dart';
 
@@ -20,6 +21,9 @@ class ReceiverPage extends StatefulWidget {
 }
 
 class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClientMixin {
+  ReceiverNotifier? _receiverNotifier;
+  int _resetKey = 0;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -34,12 +38,28 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
     });
   }
 
+  // Метод для сброса состояния UI
+  void _resetUI() {
+    setState(() {
+      _resetKey++;
+    });
+  }
+
+  // Пересоздаём notifier
+  void _rebuildNotifier() {
+    setState(() {
+      _receiverNotifier = ReceiverNotifier(Provider.of<TCPProvider>(context, listen: false));
+      _resetKey++; // Обновляем ключ для полного пересоздания
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final tcpProvider = Provider.of<TCPProvider>(context);
 
     return ChangeNotifierProvider(
+      key: ValueKey(_resetKey), // Обновляем ключ для полного пересоздания
       create: (_) => ReceiverNotifier(tcpProvider),
       child: Scaffold(
         appBar: AppBar(
@@ -53,7 +73,13 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                 children: [
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isParsing ? null : notifier.toggleParsingFile,
+                      onPressed: notifier.isParsing
+                          ? null
+                          : () {
+                              _resetUI(); // Сначала сбрасываем UI
+                              notifier.toggleParsingFile(); // Затем запускаем парсинг
+                              _rebuildNotifier(); // Пересоздаём notifier для сброса состояния
+                            },
                       child: Text(
                         notifier.isParsing ? 'Processing file...' : 'Start Parsing file',
                       ),
@@ -62,24 +88,50 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isParsing ? notifier.toggleParsingFile : null,
+                      onPressed: notifier.isParsing
+                          ? () {
+                              notifier.toggleParsingFile();
+                            }
+                          : null,
                       child: const Text('Stop Parsing file'),
                     ),
                   ),
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isContinuousParsing ? null : notifier.toggleContinuousParsingFile,
+                      onPressed: notifier.isContinuousParsing
+                          ? null
+                          : () {
+                              _resetUI(); // Сначала сбрасываем UI
+                              notifier.toggleContinuousParsingFile(); // Затем запускаем парсинг
+                              _rebuildNotifier(); // Пересоздаём notifier для сброса состояния
+                            },
                       child: Text(notifier.isContinuousParsing ? 'Parsing tcp-port...' : 'Start Parsing tcp-port'),
                     ),
                   ),
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isContinuousParsing ? notifier.toggleContinuousParsingFile : null,
+                      onPressed: notifier.isContinuousParsing
+                          ? () {
+                              notifier.toggleContinuousParsingFile();
+                            }
+                          : null,
                       child: const Text('Stop Parsing tcp-port'),
                     ),
                   ),
+                  const SizedBox(width: 20),
+                  ElevatedButton(
+                    onPressed: _resetUI,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 252, 149, 142),
+                    ),
+                    child: const Text('Reset UI'),
+                  ),
+                  const SizedBox(width: 20),
+                  const CopyCoordinatesButton(),
+                  const SizedBox(width: 20),
+                  const RemoveMarkerButton(),
                 ],
               ),
               const SizedBox(height: 20),
@@ -93,9 +145,6 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
 
               const SizedBox(height: 20),
               const Receiver50PacketAbsV(),
-
-              // const SizedBox(height: 20),
-              // CopyCoordinatesButton(),
 
               const SizedBox(height: 20),
               const Receiver50PacketMap(),

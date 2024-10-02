@@ -18,13 +18,16 @@ class _Receiver50PacketMapState extends State<Receiver50PacketMap> {
   double _mapZoom = 10; // Начальное значение зума
   // LatLng _currentCenter = const LatLng(55.751244, 37.618423); // Начальное положение
   LatLng _currentCenter = const LatLng(48.15, 11.58); // Начальное положение
+  // ignore: unused_field
   bool _initialZoomSet = false; // Флаг для определения, был ли уже установлен начальный зум
+  // ignore: unused_field
   bool _isUserInput = true;
 
   final TextEditingController _coordsController = TextEditingController();
   LatLng? _markerLocation;
   double? _markerHeight;
-  bool _isInputFieldVisible = false;
+  // ignore: unused_field
+  final bool _isInputFieldVisible = false;
 
   LatLng? get markerLocation => _markerLocation;
   double? get markerHeight => _markerHeight;
@@ -33,7 +36,7 @@ class _Receiver50PacketMapState extends State<Receiver50PacketMap> {
   Timer? _followMarkerTimer;
 
   bool _isDrawingEnabled = false; // Флаг для управления отрисовкой
-  List<CircleMarker> _allCircleMarkers = [];
+  final List<CircleMarker> _allCircleMarkers = [];
 
   @override
   void dispose() {
@@ -237,6 +240,7 @@ class _Receiver50PacketMapState extends State<Receiver50PacketMap> {
   // Метод для перемещения к текущему местоположению с сохранением зума
   void _moveToCurrentLocation(Map<String, String> coordinatesData) {
     LatLng? location;
+    // ignore: unused_local_variable
     double? sko;
 
     if ((location = _getLocationIfValid(coordinatesData['GPS'])) != null && (sko = _getSKOIfValid(coordinatesData['GPS'])) != null) {

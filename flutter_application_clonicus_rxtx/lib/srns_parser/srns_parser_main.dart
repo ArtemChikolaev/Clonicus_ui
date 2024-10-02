@@ -152,7 +152,7 @@ class SRNSParser {
 
       _isReading = false;
     } catch (e, stackTrace) {
-      print('Error during file parsing: $e');
+      // print('Error during file parsing: $e');
       print('StackTrace: $stackTrace');
       _timer.cancel();
     }

@@ -66,7 +66,7 @@ List<FiftyPacketData> filterFiftyPacketData(List<String> dataList) {
           ));
         }
       } catch (e) {
-        print('Ошибка декодирования данных 50 пакета: $e');
+        // print('Ошибка декодирования данных 50 пакета: $e');
       }
     }
   }

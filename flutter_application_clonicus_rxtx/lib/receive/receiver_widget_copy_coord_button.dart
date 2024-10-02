@@ -27,7 +27,7 @@ class CopyCoordinatesButton extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 211, 186, 253),
                 ),
-                child: const Text('Копировать координаты'),
+                child: const Text('Скопировать координаты'),
               );
             }
           },
