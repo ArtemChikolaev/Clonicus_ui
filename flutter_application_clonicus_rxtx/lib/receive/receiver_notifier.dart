@@ -6,6 +6,10 @@ import 'package:latlong2/latlong.dart';
 class ReceiverNotifier extends ChangeNotifier {
   final ParsingService _parsingService;
   final ScrollController scrollController = ScrollController();
+  // ignore: unused_field
+  bool _isParserActive = false; // Переменная для отслеживания активного парсера
+
+  bool _isDisposed = false; // Флаг для отслеживания, уничтожен ли объект
 
   // Координаты для разных навигационных систем
   LatLng? _gpsLocation;
@@ -21,9 +25,16 @@ class ReceiverNotifier extends ChangeNotifier {
   double? _bdsHeight;
 
   ReceiverNotifier(TCPProvider tcpProvider) : _parsingService = ParsingService(tcpProvider) {
-    _parsingService.parsedDataNotifier.addListener(notifyListeners);
-    _parsingService.isParsingNotifier.addListener(notifyListeners);
-    _parsingService.isContinuousParsingNotifier.addListener(notifyListeners);
+    _parsingService.parsedDataNotifier.addListener(_notifyIfNotDisposed);
+    _parsingService.isParsingNotifier.addListener(_notifyIfNotDisposed);
+    _parsingService.isContinuousParsingNotifier.addListener(_notifyIfNotDisposed);
+  }
+
+  // Проверка на то, уничтожен ли объект, перед уведомлением слушателей
+  void _notifyIfNotDisposed() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
   }
 
   // Геттеры для координат навигационных систем
@@ -44,7 +55,7 @@ class ReceiverNotifier extends ChangeNotifier {
     _gpsLocation = location;
     _gpsHeight = height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners(); // Уведомляем слушателей об изменении после завершения сборки
+      _notifyIfNotDisposed(); // Уведомляем слушателей об изменении после завершения сборки
     });
   }
 
@@ -53,7 +64,7 @@ class ReceiverNotifier extends ChangeNotifier {
     _glnLocation = location;
     _glnHeight = height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners(); // Уведомляем слушателей об изменении после завершения сборки
+      _notifyIfNotDisposed(); // Уведомляем слушателей об изменении после завершения сборки
     });
   }
 
@@ -62,7 +73,7 @@ class ReceiverNotifier extends ChangeNotifier {
     _galLocation = location;
     _galHeight = height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners(); // Уведомляем слушателей об изменении после завершения сборки
+      _notifyIfNotDisposed(); // Уведомляем слушателей об изменении после завершения сборки
     });
   }
 
@@ -71,7 +82,7 @@ class ReceiverNotifier extends ChangeNotifier {
     _bdsLocation = location;
     _bdsHeight = height;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners(); // Уведомляем слушателей об изменении после завершения сборки
+      _notifyIfNotDisposed(); // Уведомляем слушателей об изменении после завершения сборки
     });
   }
 
@@ -80,28 +91,52 @@ class ReceiverNotifier extends ChangeNotifier {
   bool get isContinuousParsing => _parsingService.isContinuousParsing;
 
   void toggleParsingFile() async {
+    if (_isDisposed) return; // Проверяем, не уничтожен ли объект
     if (_parsingService.isParsing) {
-      await _parsingService.stopParsingFile(); // Остановка парсинга
+      await _parsingService.stopParsingFile();
+      _clearData(); // Очищаем данные после остановки
+      _isParserActive = false;
+      _notifyIfNotDisposed();
     } else {
       final outputFile = _parsingService.tcpProvider.outputFile;
       if (outputFile.existsSync()) {
-        await _parsingService.startParsingFile(outputFile.path); // Запуск парсинга
+        _isParserActive = true;
+        await _parsingService.startParsingFile(outputFile.path);
+        _notifyIfNotDisposed();
       }
     }
-    notifyListeners(); // Уведомляем UI о смене состояния
   }
 
   void toggleContinuousParsingFile() async {
+    if (_isDisposed) return; // Проверяем, не уничтожен ли объект
     if (_parsingService.isContinuousParsing) {
       await _parsingService.stopContinuousParsingFile();
+      _clearData();
+      _isParserActive = false;
+      _notifyIfNotDisposed();
     } else {
+      _isParserActive = true;
       await _parsingService.startContinuousParsingFile();
+      _notifyIfNotDisposed();
     }
+  }
+
+  void _clearData() {
+    // Очищаем все данные после остановки парсера
+    _gpsLocation = null;
+    _gpsHeight = null;
+    _glnLocation = null;
+    _glnHeight = null;
+    _galLocation = null;
+    _galHeight = null;
+    _bdsLocation = null;
+    _bdsHeight = null;
+    _notifyIfNotDisposed();
   }
 
   void resumeParsingDisplay() {
     // Уведомляем о наличии данных при возврате
-    notifyListeners();
+    _notifyIfNotDisposed();
   }
 
   LatLng? _markerLocation;
@@ -115,21 +150,23 @@ class ReceiverNotifier extends ChangeNotifier {
   void setMarkerLocation(LatLng location, {double? height}) {
     _markerLocation = location;
     _markerHeight = height;
-    notifyListeners();
+    _notifyIfNotDisposed();
   }
 
   // Удаление маркера
   void removeMarker() {
     _markerLocation = null;
     _markerHeight = null;
-    notifyListeners(); // Уведомляем слушателей об изменении
+    _notifyIfNotDisposed(); // Уведомляем слушателей об изменении
   }
 
   @override
   void dispose() {
-    _parsingService.parsedDataNotifier.removeListener(notifyListeners);
-    _parsingService.isParsingNotifier.removeListener(notifyListeners);
-    _parsingService.isContinuousParsingNotifier.removeListener(notifyListeners);
+    _isDisposed = true; // Устанавливаем флаг уничтожения
+    _parsingService.parsedDataNotifier.removeListener(_notifyIfNotDisposed);
+    _parsingService.isParsingNotifier.removeListener(_notifyIfNotDisposed);
+    _parsingService.isContinuousParsingNotifier.removeListener(_notifyIfNotDisposed);
+    _parsingService.dispose(); // Удаляем возможные оставшиеся задачи
     scrollController.dispose();
     super.dispose();
   }

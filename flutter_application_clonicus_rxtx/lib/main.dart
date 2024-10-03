@@ -7,8 +7,22 @@ import 'ssh/ssh_provider.dart';
 import 'ssh/ssh_page.dart';
 import 'tcp_client/tcp_client_page.dart';
 import 'transceive/transceiver_page.dart';
+import 'package:desktop_window/desktop_window.dart'; // фиксированный размер окна приложения
+import 'dart:io'; // Для проверки платформы
 
-void main() => runApp(const ClonicusModded());
+void main() async {
+  // Инициализация WidgetsBinding
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Устанавливаем минимальные размеры окна для десктопных платформ
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    await DesktopWindow.setMinWindowSize(const Size(1728, 972));
+  }
+
+  runApp(const ClonicusModded());
+}
+
+// void main() => runApp(const ClonicusModded());
 
 class ClonicusModded extends StatelessWidget {
   const ClonicusModded({super.key});

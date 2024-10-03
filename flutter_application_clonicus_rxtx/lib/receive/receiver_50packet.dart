@@ -53,7 +53,7 @@ List<FiftyPacketData> filterFiftyPacketData(List<String> dataList) {
             wn: int.parse(match.group(1)!),
             tow: double.parse(match.group(2)!),
             navSys: match.group(3)!,
-            status: int.parse(match.group(4)!), // Добавляем парсинг статуса
+            status: int.parse(match.group(4)!),
             latitude: double.parse(match.group(5)!),
             longitude: double.parse(match.group(6)!),
             height: double.parse(match.group(7)!),

@@ -4,10 +4,12 @@ import 'srns_isolate.manager.dart';
 import 'package:flutter_application_clonicus_rxtx/tcp_client/tcp_provider.dart';
 
 class ParsingService {
-  // Используем ValueNotifier для списка данных, чтобы UI всегда знал о изменениях.
   final ValueNotifier<List<String>> parsedDataNotifier = ValueNotifier<List<String>>([]);
   final TCPProvider _tcpProvider;
   StreamSubscription? _subscription;
+
+  // Флаг, указывающий на то, был ли объект уничтожен
+  bool _isDisposed = false;
 
   // Состояние парсинга
   final ValueNotifier<bool> isParsingNotifier = ValueNotifier<bool>(false);
@@ -17,7 +19,6 @@ class ParsingService {
     _initializeContinuousSubscription();
   }
 
-  /// Подписка на поток данных, чтобы она всегда была активна
   void _initializeContinuousSubscription() {
     _subscription?.cancel();
     _subscription = IsolateManager.stream.listen((message) {
@@ -32,17 +33,18 @@ class ParsingService {
 
   TCPProvider get tcpProvider => _tcpProvider;
 
-  /// Запуск парсинга файла
   Future<void> startParsingFile(String filePath) async {
-    if (IsolateManager.isParsing) return;
+    if (IsolateManager.isParsing || _isDisposed) return; // Добавлена проверка на уничтожение
 
-    isParsingNotifier.value = true;
+    if (!_isDisposed) {
+      isParsingNotifier.value = true;
+    }
 
     await IsolateManager.startParsingFile(filePath);
 
     IsolateManager.parsingCompleteNotifier.addListener(() {
-      if (!IsolateManager.isParsing) {
-        _completeParsing(); // Сбрасываем состояние парсинга после завершения
+      if (!IsolateManager.isParsing && !_isDisposed) {
+        _completeParsing();
       }
     });
 
@@ -51,9 +53,8 @@ class ParsingService {
     ]);
   }
 
-  /// Остановка парсинга файла
   Future<void> stopParsingFile() async {
-    if (IsolateManager.isParsing) {
+    if (IsolateManager.isParsing && !_isDisposed) {
       await IsolateManager.stopParsingFile();
       isParsingNotifier.value = false;
 
@@ -63,21 +64,22 @@ class ParsingService {
     }
   }
 
-  /// Запуск непрерывного парсинга
   Future<void> startContinuousParsingFile() async {
-    if (IsolateManager.isContinuousParsing) return;
+    if (IsolateManager.isContinuousParsing || _isDisposed) return; // Добавлена проверка на уничтожение
+
+    if (!_isDisposed) {
+      isContinuousParsingNotifier.value = true;
+    }
 
     await IsolateManager.startContinuousParsingFile(_tcpProvider.outputFile.path);
-    isContinuousParsingNotifier.value = true;
 
     _addParsedData([
       'Continuous parsing started'
     ]);
   }
 
-  /// Остановка непрерывного парсинга
   Future<void> stopContinuousParsingFile() async {
-    if (IsolateManager.isContinuousParsing) {
+    if (IsolateManager.isContinuousParsing && !_isDisposed) {
       await IsolateManager.stopContinuousParsingFile();
       isContinuousParsingNotifier.value = false;
 
@@ -87,24 +89,23 @@ class ParsingService {
     }
   }
 
-  /// Добавление данных в список и уведомление UI
   void _addParsedData(List<String> data) {
-    // Создаем копию текущего списка, чтобы обновить UI
+    if (_isDisposed) return; // Проверка на уничтожение
     final updatedData = List<String>.from(parsedDataNotifier.value)..addAll(data);
-    parsedDataNotifier.value = updatedData; // Обновляем ValueNotifier
+    parsedDataNotifier.value = updatedData;
   }
 
-  // Окончание парсинга файла
   void _completeParsing() {
+    if (_isDisposed) return; // Проверка на уничтожение
     isParsingNotifier.value = false;
     IsolateManager.cleanUpParsing();
   }
 
-  /// Очистка ресурсов при уничтожении
   void dispose() {
     _subscription?.cancel();
     parsedDataNotifier.dispose();
     isParsingNotifier.dispose();
     isContinuousParsingNotifier.dispose();
+    _isDisposed = true; // Устанавливаем флаг при уничтожении
   }
 }
