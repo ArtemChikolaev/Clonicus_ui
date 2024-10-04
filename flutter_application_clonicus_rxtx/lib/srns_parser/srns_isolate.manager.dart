@@ -48,14 +48,7 @@ class IsolateManager {
         parsingCompleteNotifier.value = true; // Уведомляем об окончании парсинга
         cleanUpParsing();
       } else if (message is List<Map<String, dynamic>>) {
-        // print('Received parsed data: $message');
         _streamController?.add(message); // Передаем данные через StreamController
-      } else if (message is Map<String, dynamic>) {
-        if (message.containsKey('error')) {
-          print('Error during parsing: ${message['error']}');
-        } else {
-          print('Other message: $message');
-        }
       }
     });
   }
@@ -125,24 +118,21 @@ class IsolateManager {
 
     final srnsParser = SRNSParser(filePath);
 
-    // print('Starting file parsing...');
-
     // Запуск процесса парсинга
-    await srnsParser.readAndParse(); // Убедимся, что парсер стартует
-
-    // print('File parsing started, subscribing to stream...');
+    await srnsParser.readAndParse();
 
     // Подписываемся на поток данных из парсера
     srnsParser.stream.listen((data) {
       if (data.isNotEmpty) {
-        // print('Sending parsed data: $data');
         sendPort.send(data); // Отправляем данные в главный изолят
       }
     }, onDone: () {
-      print('Stream completed, sending done message...');
       sendPort.send('done'); // Отправляем сообщение о завершении
+      isParsing = false; // Завершаем процесс парсинга
+      isParsingNotifier.value = false; // Обновляем состояние парсинга
+      parsingCompleteNotifier.value = true; // Уведомляем об окончании парсинга
+      cleanUpParsing();
     }, onError: (error) {
-      print('Stream error: $error');
       sendPort.send({
         'error': error.toString()
       });

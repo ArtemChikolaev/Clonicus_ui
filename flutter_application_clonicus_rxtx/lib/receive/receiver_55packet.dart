@@ -39,27 +39,24 @@ List<FiftyFivePacketData> filterFiftyFivePacketData(List<String> dataList) {
   return fiftyFivePacketDataList;
 }
 
-Future<List<String>> processFiftyFivePacketData(List<String> rawData) async {
+Future<List<Map<String, String>>> processFiftyFivePacketData(List<String> rawData) async {
   List<FiftyFivePacketData> packetDataList = filterFiftyFivePacketData(rawData);
 
-  // Хранилища данных для каждой навигационной системы с мапингом по satID
   Map<int, FiftyFivePacketData> gpsSatellites = {};
   Map<int, FiftyFivePacketData> glnSatellites = {};
   Map<int, FiftyFivePacketData> galSatellites = {};
   Map<int, FiftyFivePacketData> bdsSatellites = {};
 
-  // Наборы актуальных спутников, чтобы отслеживать обновления
   Set<int> currentGpsSatellites = {};
   Set<int> currentGlnSatellites = {};
   Set<int> currentGalSatellites = {};
   Set<int> currentBdsSatellites = {};
 
-  // Обрабатываем данные из пакета
   for (var packet in packetDataList) {
     switch (packet.navSysType) {
       case 'GPS':
-        gpsSatellites[packet.satID] = packet; // Обновляем или добавляем спутник
-        currentGpsSatellites.add(packet.satID); // Добавляем в текущий набор
+        gpsSatellites[packet.satID] = packet;
+        currentGpsSatellites.add(packet.satID);
         break;
       case 'GLN':
         glnSatellites[packet.satID] = packet;
@@ -76,36 +73,51 @@ Future<List<String>> processFiftyFivePacketData(List<String> rawData) async {
     }
   }
 
-  // Удаляем спутники, данные по которым не пришли (если их нет в текущем наборе)
+  // Удаляем спутники без обновлений
   gpsSatellites.removeWhere((satID, _) => !currentGpsSatellites.contains(satID));
   glnSatellites.removeWhere((satID, _) => !currentGlnSatellites.contains(satID));
   galSatellites.removeWhere((satID, _) => !currentGalSatellites.contains(satID));
   bdsSatellites.removeWhere((satID, _) => !currentBdsSatellites.contains(satID));
 
-  // Список строк для возврата
-  List<String> result = [];
+  // Подготовка данных для SkyPlot
+  List<Map<String, String>> result = [];
 
-  // Формируем строки для каждой системы и добавляем их в список
-  result.add('GPS Satellites:');
+  // Добавляем данные для каждой системы
   gpsSatellites.values.forEach((packet) {
-    result.add(packet.toString());
+    result.add({
+      'Система ГНСС': 'GPS',
+      'Номер НКА': packet.satID.toString(),
+      'Азимут': packet.azimuth.toString(),
+      'Угол места': packet.elevation.toString(),
+    });
   });
 
-  result.add('GLN Satellites:');
   glnSatellites.values.forEach((packet) {
-    result.add(packet.toString());
+    result.add({
+      'Система ГНСС': 'GLN',
+      'Номер НКА': packet.satID.toString(),
+      'Азимут': packet.azimuth.toString(),
+      'Угол места': packet.elevation.toString(),
+    });
   });
 
-  result.add('GAL Satellites:');
   galSatellites.values.forEach((packet) {
-    result.add(packet.toString());
+    result.add({
+      'Система ГНСС': 'GAL',
+      'Номер НКА': packet.satID.toString(),
+      'Азимут': packet.azimuth.toString(),
+      'Угол места': packet.elevation.toString(),
+    });
   });
 
-  result.add('BDS Satellites:');
   bdsSatellites.values.forEach((packet) {
-    result.add(packet.toString());
+    result.add({
+      'Система ГНСС': 'BDS',
+      'Номер НКА': packet.satID.toString(),
+      'Азимут': packet.azimuth.toString(),
+      'Угол места': packet.elevation.toString(),
+    });
   });
 
-  // Возвращаем список строк как Future
   return result;
 }

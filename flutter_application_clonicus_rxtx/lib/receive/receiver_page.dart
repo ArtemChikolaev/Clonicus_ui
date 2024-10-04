@@ -45,7 +45,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
 
   void _resetUIAndStartParsingFile(ReceiverNotifier notifier) {
     // Сначала запускаем парсер
-    notifier.toggleParsingFile();
+    notifier.startParsingFile();
     _resetUI();
   }
 
@@ -75,16 +75,31 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                 children: [
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isParsing ? null : () => _resetUIAndStartParsingFile(notifier),
-                      child: Text(
-                        notifier.isParsing ? 'Processing file...' : 'Start Parsing file',
-                      ),
+                      onPressed: () async {
+                        final isStarted = await notifier.startParsingFile();
+                        if (isStarted) {
+                          _resetUIAndStartParsingFile(notifier);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Started parsing file')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Parsing failed: file not found')),
+                          );
+                        }
+                      },
+                      child: const Text('Start Parsing file'),
                     ),
                   ),
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isParsing ? notifier.toggleParsingFile : null,
+                      onPressed: () async {
+                        bool success = await notifier.stopParsingFile();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(success ? 'Stopped parsing file' : 'Parser was not running')),
+                        );
+                      },
                       child: const Text('Stop Parsing file'),
                     ),
                   ),
@@ -105,7 +120,12 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                   const SizedBox(width: 20),
                   // Кнопка для сброса всего UI
                   ElevatedButton(
-                    onPressed: _resetUI,
+                    onPressed: () {
+                      _resetUI();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('UI перестроен')),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 252, 149, 142),
                     ),
@@ -123,14 +143,15 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
               const SizedBox(height: 20),
               const Receiver50PacketCoord(),
 
-              const SizedBox(height: 20),
-              const Receiver50PacketTow(),
+              // const SizedBox(height: 20),
+              // const Receiver50PacketTow(),
 
-              const SizedBox(height: 20),
-              const Receiver50PacketAbsV(),
-
-              const SizedBox(height: 20),
-              const Receiver55PacketData(),
+              // const SizedBox(height: 20),
+              // const Receiver50PacketAbsV(),
+              // const SizedBox(height: 20),
+              // const Expanded(
+              //   child: Receiver55PacketData(),
+              // )
 
               // const SizedBox(height: 20),
               // const Receiver50PacketMap(),

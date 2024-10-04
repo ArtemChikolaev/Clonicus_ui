@@ -1,6 +1,5 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'receiver_50packet.dart';
@@ -16,109 +15,111 @@ class Receiver50PacketAbsV extends StatelessWidget {
         final receiverNotifier = Provider.of<ReceiverNotifier>(context);
         final List<String> rawData = receiverNotifier.parsedDataList;
 
+        // Первый FutureBuilder для загрузки данных скоростей
         return FutureBuilder<void>(
           future: velocityFiftyPacketData(rawData),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Text('Ошибка: ${snapshot.error}');
+          builder: (context, velocitySnapshot) {
+            if (velocitySnapshot.hasError) {
+              return Text('Ошибка загрузки скоростей: ${velocitySnapshot.error}');
             } else {
-              // Проверяем, есть ли данные хотя бы для одной системы
-              bool hasData = _hasValidData(
-                    notifier.gpsLocation,
-                    notifier.gpsHeight,
-                    absVGPSQueue,
-                  ) ||
-                  _hasValidData(
-                    notifier.glnLocation,
-                    notifier.glnHeight,
-                    absVGLNQueue,
-                  ) ||
-                  _hasValidData(
-                    notifier.galLocation,
-                    notifier.galHeight,
-                    absVGALQueue,
-                  ) ||
-                  _hasValidData(
-                    notifier.bdsLocation,
-                    notifier.bdsHeight,
-                    absVBDSQueue,
-                  );
+              // Когда данные скоростей загружены, продолжаем с координатами
+              return FutureBuilder<Map<String, String>>(
+                future: readLastCoordinates(rawData),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Text('Ошибка: ${snapshot.error}');
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Text('Нет данных');
+                  } else {
+                    final Map<String, String> coordinates = snapshot.data!;
 
-              // Если нет данных ни для одной системы, возвращаем пустой виджет
-              if (!hasData) {
-                return const SizedBox.shrink();
-              }
+                    // Проверяем наличие данных для каждой системы
+                    final hasSolutionGPS = coordinates['GPS'] != null && coordinates['GPS']!.isNotEmpty && _isNonZeroLatitude(coordinates['GPS'], 'GPS');
+                    final hasSolutionGLN = coordinates['GLN'] != null && coordinates['GLN']!.isNotEmpty && _isNonZeroLatitude(coordinates['GLN'], 'GLN');
+                    final hasSolutionGAL = coordinates['GAL'] != null && coordinates['GAL']!.isNotEmpty && _isNonZeroLatitude(coordinates['GAL'], 'GAL');
+                    final hasSolutionBDS = coordinates['BDS'] != null && coordinates['BDS']!.isNotEmpty && _isNonZeroLatitude(coordinates['BDS'], 'BDS');
 
-              // Сохранение валидных скоростей
-              List<double> validSpeeds = [];
-              if (_hasValidData(notifier.gpsLocation, notifier.gpsHeight, absVGPSQueue)) {
-                validSpeeds.add(absVGPSQueue.last);
-              }
-              if (_hasValidData(notifier.glnLocation, notifier.glnHeight, absVGLNQueue)) {
-                validSpeeds.add(absVGLNQueue.last);
-              }
-              if (_hasValidData(notifier.galLocation, notifier.galHeight, absVGALQueue)) {
-                validSpeeds.add(absVGALQueue.last);
-              }
-              if (_hasValidData(notifier.bdsLocation, notifier.bdsHeight, absVBDSQueue)) {
-                validSpeeds.add(absVBDSQueue.last);
-              }
+                    // Проверяем, есть ли хотя бы одно решение
+                    bool hasData = hasSolutionGPS || hasSolutionGLN || hasSolutionGAL || hasSolutionBDS;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 8.0),
-                    child: AspectRatio(
-                      aspectRatio: 11,
-                      // Добавляем спидометр над выводом скоростей
-                      child: DynamicSpeedometer(
-                        gpsSpeed: _getLastValue(absVGPSQueue),
-                        glnSpeed: _getLastValue(absVGLNQueue),
-                        galSpeed: _getLastValue(absVGALQueue),
-                        bdsSpeed: _getLastValue(absVBDSQueue),
-                        hasSolutionGPS: _hasValidData(notifier.gpsLocation, notifier.gpsHeight, absVGPSQueue),
-                        hasSolutionGLN: _hasValidData(notifier.glnLocation, notifier.glnHeight, absVGLNQueue),
-                        hasSolutionGAL: _hasValidData(notifier.galLocation, notifier.galHeight, absVGALQueue),
-                        hasSolutionBDS: _hasValidData(notifier.bdsLocation, notifier.bdsHeight, absVBDSQueue),
-                      ),
-                    ),
-                  ),
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Если нет данных, возвращаем пустой виджет
+                    if (!hasData) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // Сохраняем валидные скорости
+                    List<double> validSpeeds = [];
+                    if (hasSolutionGPS && absVGPSQueue.isNotEmpty) {
+                      validSpeeds.add(absVGPSQueue.last);
+                    }
+                    if (hasSolutionGLN && absVGLNQueue.isNotEmpty) {
+                      validSpeeds.add(absVGLNQueue.last);
+                    }
+                    if (hasSolutionGAL && absVGALQueue.isNotEmpty) {
+                      validSpeeds.add(absVGALQueue.last);
+                    }
+                    if (hasSolutionBDS && absVBDSQueue.isNotEmpty) {
+                      validSpeeds.add(absVBDSQueue.last);
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Выводим скорости для каждой системы, если данные присутствуют
-                        if (_hasValidData(notifier.gpsLocation, notifier.gpsHeight, absVGPSQueue))
-                          _buildAbsVText(
-                            'GPS',
-                            absVGPSQueue,
-                            Colors.red,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 8.0),
+                          child: AspectRatio(
+                            aspectRatio: 11,
+                            // Спидометр с обновленными проверками на решение
+                            child: DynamicSpeedometer(
+                              gpsSpeed: _getLastValue(absVGPSQueue),
+                              glnSpeed: _getLastValue(absVGLNQueue),
+                              galSpeed: _getLastValue(absVGALQueue),
+                              bdsSpeed: _getLastValue(absVBDSQueue),
+                              hasSolutionGPS: hasSolutionGPS,
+                              hasSolutionGLN: hasSolutionGLN,
+                              hasSolutionGAL: hasSolutionGAL,
+                              hasSolutionBDS: hasSolutionBDS,
+                            ),
                           ),
-                        if (_hasValidData(notifier.glnLocation, notifier.glnHeight, absVGLNQueue))
-                          _buildAbsVText(
-                            'GLN',
-                            absVGLNQueue,
-                            Colors.blue,
+                        ),
+                        const Divider(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Выводим скорости для каждой системы, если данные присутствуют
+                              if (hasSolutionGPS)
+                                _buildAbsVText(
+                                  'GPS',
+                                  absVGPSQueue,
+                                  Colors.red,
+                                ),
+                              if (hasSolutionGLN)
+                                _buildAbsVText(
+                                  'GLN',
+                                  absVGLNQueue,
+                                  Colors.blue,
+                                ),
+                              if (hasSolutionGAL)
+                                _buildAbsVText(
+                                  'GAL',
+                                  absVGALQueue,
+                                  Colors.orange,
+                                ),
+                              if (hasSolutionBDS)
+                                _buildAbsVText(
+                                  'BDS',
+                                  absVBDSQueue,
+                                  const Color.fromARGB(255, 5, 131, 9),
+                                ),
+                            ],
                           ),
-                        if (_hasValidData(notifier.galLocation, notifier.galHeight, absVGALQueue))
-                          _buildAbsVText(
-                            'GAL',
-                            absVGALQueue,
-                            Colors.orange,
-                          ),
-                        if (_hasValidData(notifier.bdsLocation, notifier.bdsHeight, absVBDSQueue))
-                          _buildAbsVText(
-                            'BDS',
-                            absVBDSQueue,
-                            const Color.fromARGB(255, 5, 131, 9),
-                          ),
+                        ),
                       ],
-                    ),
-                  ),
-                ],
+                    );
+                  }
+                },
               );
             }
           },
@@ -127,15 +128,34 @@ class Receiver50PacketAbsV extends StatelessWidget {
     );
   }
 
+  // Проверяем, что широта не равна 0 для конкретной системы
+  bool _isNonZeroLatitude(String? data, String systemName) {
+    if (data == null || data.isEmpty) return false;
+
+    final latitudePrefixWithApostrophe = "Широта'($systemName): ";
+    final latitudePrefixWithoutApostrophe = "Широта($systemName): ";
+
+    final startIndexWithApostrophe = data.indexOf(latitudePrefixWithApostrophe);
+    final startIndexWithoutApostrophe = data.indexOf(latitudePrefixWithoutApostrophe);
+
+    int startIndex = startIndexWithApostrophe != -1 ? startIndexWithApostrophe : startIndexWithoutApostrophe;
+
+    if (startIndex == -1) return false;
+
+    final latitudeString = data.substring(startIndex + (startIndexWithApostrophe != -1 ? latitudePrefixWithApostrophe.length : latitudePrefixWithoutApostrophe.length)).split(' ')[0];
+
+    final latitude = double.tryParse(latitudeString);
+
+    return latitude != null && latitude != 0.0;
+  }
+
   // Метод для создания текста с последним значением скорости для конкретной системы
   Widget _buildAbsVText(
     String systemName,
     Queue<double> queue,
     Color color,
   ) {
-    String absVValue = queue.isNotEmpty
-        ? queue.last.toStringAsFixed(9) // Берем последнее значение в очереди
-        : 'Нет данных'; // Если нет данных, выводим соответствующее сообщение
+    String absVValue = queue.isNotEmpty ? queue.last.toStringAsFixed(9) : 'Нет данных';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.0),
@@ -149,11 +169,6 @@ class Receiver50PacketAbsV extends StatelessWidget {
   // Получаем последнее значение из очереди
   double _getLastValue(Queue<double> queue) {
     return queue.isNotEmpty ? queue.last : 0.0;
-  }
-
-  // Проверяем, есть ли данные для текущей системы
-  bool _hasValidData(LatLng? location, double? height, Queue<double> queue) {
-    return location != null && height != null && queue.isNotEmpty;
   }
 }
 

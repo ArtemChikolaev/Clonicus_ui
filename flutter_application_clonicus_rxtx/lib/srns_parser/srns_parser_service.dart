@@ -8,10 +8,8 @@ class ParsingService {
   final TCPProvider _tcpProvider;
   StreamSubscription? _subscription;
 
-  // Флаг, указывающий на то, был ли объект уничтожен
   bool _isDisposed = false;
 
-  // Состояние парсинга
   final ValueNotifier<bool> isParsingNotifier = ValueNotifier<bool>(false);
   final ValueNotifier<bool> isContinuousParsingNotifier = ValueNotifier<bool>(false);
 
@@ -23,7 +21,6 @@ class ParsingService {
     _subscription?.cancel();
     _subscription = IsolateManager.stream.listen((message) {
       _addParsedData(message.map((data) => data.toString()).toList());
-      // print('Parsed data received in srns_parser_service: $message');
     });
   }
 
@@ -33,24 +30,27 @@ class ParsingService {
 
   TCPProvider get tcpProvider => _tcpProvider;
 
-  Future<void> startParsingFile(String filePath) async {
-    if (IsolateManager.isParsing || _isDisposed) return; // Добавлена проверка на уничтожение
+  ValueNotifier<void> get parsingCompleteNotifier => IsolateManager.parsingCompleteNotifier;
 
-    if (!_isDisposed) {
-      isParsingNotifier.value = true;
-    }
+  Future<void> startParsingFile(String filePath) async {
+    if (isParsingNotifier.value || _isDisposed) return;
+
+    isParsingNotifier.value = true;
 
     await IsolateManager.startParsingFile(filePath);
 
-    IsolateManager.parsingCompleteNotifier.addListener(() {
-      if (!IsolateManager.isParsing && !_isDisposed) {
-        _completeParsing();
-      }
-    });
+    // Добавляем слушателя на завершение парсинга
+    parsingCompleteNotifier.addListener(_onParsingComplete);
 
     _addParsedData([
       'Parsing started'
     ]);
+  }
+
+  void _onParsingComplete() {
+    if (!_isDisposed) {
+      _completeParsing(); // Завершение парсинга
+    }
   }
 
   Future<void> stopParsingFile() async {
@@ -61,15 +61,14 @@ class ParsingService {
       _addParsedData([
         'Parsing stopped'
       ]);
+      _completeParsing();
     }
   }
 
   Future<void> startContinuousParsingFile() async {
-    if (IsolateManager.isContinuousParsing || _isDisposed) return; // Добавлена проверка на уничтожение
+    if (IsolateManager.isContinuousParsing || _isDisposed) return;
 
-    if (!_isDisposed) {
-      isContinuousParsingNotifier.value = true;
-    }
+    isContinuousParsingNotifier.value = true;
 
     await IsolateManager.startContinuousParsingFile(_tcpProvider.outputFile.path);
 
@@ -90,15 +89,25 @@ class ParsingService {
   }
 
   void _addParsedData(List<String> data) {
-    if (_isDisposed) return; // Проверка на уничтожение
+    if (_isDisposed) return;
     final updatedData = List<String>.from(parsedDataNotifier.value)..addAll(data);
     parsedDataNotifier.value = updatedData;
   }
 
   void _completeParsing() {
-    if (_isDisposed) return; // Проверка на уничтожение
+    if (_isDisposed) return;
+
+    // Обновляем состояние парсинга
     isParsingNotifier.value = false;
+    parsingCompleteNotifier.value = true;
+
+    _addParsedData([
+      'Parsing completed'
+    ]);
     IsolateManager.cleanUpParsing();
+
+    // Удаляем слушателя завершения
+    parsingCompleteNotifier.removeListener(_onParsingComplete);
   }
 
   void dispose() {
@@ -106,6 +115,6 @@ class ParsingService {
     parsedDataNotifier.dispose();
     isParsingNotifier.dispose();
     isContinuousParsingNotifier.dispose();
-    _isDisposed = true; // Устанавливаем флаг при уничтожении
+    _isDisposed = true;
   }
 }

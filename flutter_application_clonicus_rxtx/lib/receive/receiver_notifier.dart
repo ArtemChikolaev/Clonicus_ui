@@ -49,6 +49,7 @@ class ReceiverNotifier extends ChangeNotifier {
 
   LatLng? get bdsLocation => _bdsLocation;
   double? get bdsHeight => _bdsHeight;
+  
 
   // Методы для установки координат GPS
   void setGPSLocation(LatLng location, double height) {
@@ -90,21 +91,33 @@ class ReceiverNotifier extends ChangeNotifier {
   bool get isParsing => _parsingService.isParsing;
   bool get isContinuousParsing => _parsingService.isContinuousParsing;
 
-  void toggleParsingFile() async {
-    if (_isDisposed) return; // Проверяем, не уничтожен ли объект
-    if (_parsingService.isParsing) {
-      await _parsingService.stopParsingFile();
-      _clearData(); // Очищаем данные после остановки
-      _isParserActive = false;
-      _notifyIfNotDisposed();
-    } else {
+  // Метод для запуска парсера
+  Future<bool> startParsingFile() async {
+    if (_isDisposed) return false;
+
+    if (!_parsingService.isParsing) {
       final outputFile = _parsingService.tcpProvider.outputFile;
       if (outputFile.existsSync()) {
-        _isParserActive = true;
         await _parsingService.startParsingFile(outputFile.path);
-        _notifyIfNotDisposed();
+        _notifyIfNotDisposed(); // Уведомляем слушателей о запуске парсера
+        return true; // Успешно запущен
+      } else {
+        return false; // Файл не найден
       }
     }
+    return true; // Парсер уже запущен
+  }
+
+  // Метод для остановки парсера
+  Future<bool> stopParsingFile() async {
+    if (_isDisposed) return false;
+
+    if (_parsingService.isParsing) {
+      await _parsingService.stopParsingFile();
+      _notifyIfNotDisposed(); // Уведомляем слушателей о остановке парсера
+      return true; // Успешно остановлен
+    }
+    return false; // Парсер не был запущен
   }
 
   void toggleContinuousParsingFile() async {
@@ -122,7 +135,6 @@ class ReceiverNotifier extends ChangeNotifier {
   }
 
   void _clearData() {
-    // Очищаем все данные после остановки парсера
     _gpsLocation = null;
     _gpsHeight = null;
     _glnLocation = null;
@@ -131,7 +143,9 @@ class ReceiverNotifier extends ChangeNotifier {
     _galHeight = null;
     _bdsLocation = null;
     _bdsHeight = null;
-    _notifyIfNotDisposed();
+    if (!_isDisposed) {
+      notifyListeners(); // Обновляем состояние после очистки данных
+    }
   }
 
   void resumeParsingDisplay() {
@@ -158,6 +172,11 @@ class ReceiverNotifier extends ChangeNotifier {
     _markerLocation = null;
     _markerHeight = null;
     _notifyIfNotDisposed(); // Уведомляем слушателей об изменении
+  }
+
+  void resetUI() {
+    // Логика сброса состояния UI
+    notifyListeners(); // Оповещаем слушателей об изменении
   }
 
   @override
