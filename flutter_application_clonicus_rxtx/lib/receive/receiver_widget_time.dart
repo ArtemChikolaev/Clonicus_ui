@@ -23,7 +23,7 @@ class Receiver50PacketTow extends StatelessWidget {
             } else {
               return Text(
                 'Последнее значение TOW: ${snapshot.data}',
-                style: const TextStyle(fontSize: 14, color: Colors.black),
+                style: const TextStyle(fontSize: 12, color: Colors.black),
               );
             }
           },

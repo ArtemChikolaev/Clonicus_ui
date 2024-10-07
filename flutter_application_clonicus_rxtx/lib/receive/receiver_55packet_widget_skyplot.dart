@@ -55,11 +55,8 @@ class Receiver55PacketData extends StatelessWidget {
 
               // Устанавливаем флаги наличия решения на основе данных и проверки широты
               final hasSolutionGPS = coordinates['GPS'] != null && coordinates['GPS']!.isNotEmpty && isNonZeroLatitude(coordinates['GPS'], 'GPS');
-
               final hasSolutionGLN = coordinates['GLN'] != null && coordinates['GLN']!.isNotEmpty && isNonZeroLatitude(coordinates['GLN'], 'GLN');
-
               final hasSolutionGAL = coordinates['GAL'] != null && coordinates['GAL']!.isNotEmpty && isNonZeroLatitude(coordinates['GAL'], 'GAL');
-
               final hasSolutionBDS = coordinates['BDS'] != null && coordinates['BDS']!.isNotEmpty && isNonZeroLatitude(coordinates['BDS'], 'BDS');
 
               // После проверки координат строим SkyPlot

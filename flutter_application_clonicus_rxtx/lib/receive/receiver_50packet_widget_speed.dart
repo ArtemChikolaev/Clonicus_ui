@@ -68,7 +68,7 @@ class Receiver50PacketAbsV extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 0.0, horizontal: 8.0),
                           child: AspectRatio(
-                            aspectRatio: 11,
+                            aspectRatio: 3,
                             // Спидометр с обновленными проверками на решение
                             child: DynamicSpeedometer(
                               gpsSpeed: _getLastValue(absVGPSQueue),

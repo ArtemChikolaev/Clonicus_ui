@@ -25,7 +25,7 @@ class ReceiverF5PacketSatellites extends StatelessWidget {
         Map<String, int> satelliteCounts = countSatellites(latestData);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 7.0, horizontal: 16.0),
+          padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [

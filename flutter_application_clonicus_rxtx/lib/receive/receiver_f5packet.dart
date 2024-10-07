@@ -13,7 +13,7 @@ class SatelliteData {
 
   @override
   String toString() {
-    return 'Type: $type, sgnID: $sgnID, lit: $lit, q: $q';
+    return 'type: $type, sgnID: $sgnID, lit: $lit, q: $q';
   }
 }
 
@@ -48,7 +48,7 @@ List<SatelliteData> filterF5packetData(List<String> dataList) {
   List<SatelliteData> satelliteDataList = [];
 
   for (String data in dataList) {
-    if (data.contains('GlnL1OF') || data.contains('GpsL1CA') || data.contains('GalE1B') || data.contains('BdsB1I')) {
+    if (data.contains('type') && data.contains('sgnID') && data.contains('lit') && data.contains('q')) {
       // Извлечение данных
       RegExp regExp = RegExp(r'type: (\w+), sgnID: (\d+), lit: ([\-]?\d+), q: (\d+)');
       Match? match = regExp.firstMatch(data);
@@ -118,4 +118,173 @@ Map<String, int> countSatellites(Map<String, List<SatelliteData>> satelliteDataM
     'BDSL2': bdsL2Count,
     'TOTAL': totalSatellites,
   };
+}
+
+Future<List<Map<String, String>>> processF5PacketData(List<String> rawData) async {
+  List<SatelliteData> packetDataList = filterF5packetData(rawData);
+
+  Map<int, SatelliteData> gpsSatellites = {};
+  Map<int, SatelliteData> gpsL2Satellites = {};
+  Map<int, SatelliteData> gpsL5Satellites = {};
+  Map<int, SatelliteData> glnSatellites = {};
+  Map<int, SatelliteData> glnL2Satellites = {};
+  Map<int, SatelliteData> galSatellites = {};
+  Map<int, SatelliteData> galL5aSatellites = {};
+  Map<int, SatelliteData> galL5bSatellites = {};
+  Map<int, SatelliteData> bdsSatellites = {};
+  Map<int, SatelliteData> bdsL2Satellites = {};
+
+  Set<int> currentGpsSatellites = {};
+  Set<int> currentL2GpsSatellites = {};
+  Set<int> currentL5GpsSatellites = {};
+  Set<int> currentGlnSatellites = {};
+  Set<int> currentL2GlnSatellites = {};
+  Set<int> currentGalSatellites = {};
+  Set<int> currentL5aGalSatellites = {};
+  Set<int> currentL5bGalSatellites = {};
+  Set<int> currentBdsSatellites = {};
+  Set<int> currentL2BdsSatellites = {};
+
+  for (var packet in packetDataList) {
+    switch (packet.type) {
+      case 'GpsL1CA':
+        gpsSatellites[packet.sgnID] = packet;
+        currentGpsSatellites.add(packet.sgnID);
+        break;
+      case 'GpsL2CM':
+        gpsL2Satellites[packet.sgnID] = packet;
+        currentL2GpsSatellites.add(packet.sgnID);
+        break;
+      case 'GpsL5I':
+        gpsL5Satellites[packet.sgnID] = packet;
+        currentL5GpsSatellites.add(packet.sgnID);
+        break;
+      case 'GlnL1OF':
+        glnSatellites[packet.sgnID] = packet;
+        currentGlnSatellites.add(packet.sgnID);
+        break;
+      case 'GlnL2OF':
+        glnL2Satellites[packet.sgnID] = packet;
+        currentL2GlnSatellites.add(packet.sgnID);
+        break;
+      case 'GalE1B':
+        galSatellites[packet.sgnID] = packet;
+        currentGalSatellites.add(packet.sgnID);
+        break;
+      case 'GalE5aI':
+        galL5aSatellites[packet.sgnID] = packet;
+        currentL5aGalSatellites.add(packet.sgnID);
+        break;
+      case 'GalE5bI':
+        galL5bSatellites[packet.sgnID] = packet;
+        currentL5bGalSatellites.add(packet.sgnID);
+        break;
+      case 'BdsB1I':
+        bdsSatellites[packet.sgnID] = packet;
+        currentBdsSatellites.add(packet.sgnID);
+        break;
+      case 'BdsB2I':
+        bdsL2Satellites[packet.sgnID] = packet;
+        currentL2BdsSatellites.add(packet.sgnID);
+        break;
+    }
+  }
+
+  // Удаляем спутники без обновлений
+  gpsSatellites.removeWhere((satID, _) => !currentGpsSatellites.contains(satID));
+  gpsL2Satellites.removeWhere((satID, _) => !currentL2GpsSatellites.contains(satID));
+  gpsL5Satellites.removeWhere((satID, _) => !currentL5GpsSatellites.contains(satID));
+  glnSatellites.removeWhere((satID, _) => !currentGlnSatellites.contains(satID));
+  glnL2Satellites.removeWhere((satID, _) => !currentL2GlnSatellites.contains(satID));
+  galSatellites.removeWhere((satID, _) => !currentGalSatellites.contains(satID));
+  galL5aSatellites.removeWhere((satID, _) => !currentL5aGalSatellites.contains(satID));
+  galL5bSatellites.removeWhere((satID, _) => !currentL5bGalSatellites.contains(satID));
+  bdsSatellites.removeWhere((satID, _) => !currentBdsSatellites.contains(satID));
+  bdsL2Satellites.removeWhere((satID, _) => !currentL2BdsSatellites.contains(satID));
+
+  // Подготовка данных для histogramm
+  List<Map<String, String>> result = [];
+
+  // Добавляем данные для каждой системы
+  gpsSatellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  gpsL2Satellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  gpsL5Satellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  glnSatellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  glnL2Satellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  galSatellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  galL5aSatellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  galL5bSatellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  bdsSatellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  bdsL2Satellites.values.forEach((packet) {
+    result.add({
+      'Навигационный сигнал': packet.type.toString(),
+      'Номер НКА': packet.sgnID.toString(),
+      'ОСШ': packet.q.toString(),
+    });
+  });
+
+  return result;
 }

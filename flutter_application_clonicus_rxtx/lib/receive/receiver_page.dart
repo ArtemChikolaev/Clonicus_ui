@@ -5,6 +5,7 @@ import 'receiver_50packet_widget_map.dart';
 import 'receiver_50packet_widget_marker.dart';
 import 'receiver_50packet_widget_speed.dart';
 import 'receiver_55packet_widget_skyplot.dart';
+import 'receiver_f5packet_widget_histogramm.dart';
 import 'receiver_notifier.dart';
 import 'package:flutter_application_clonicus_rxtx/tcp_client/tcp_provider.dart';
 import 'receiver_f5packet_widget_sumsat.dart';
@@ -70,8 +71,85 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Divider(),
+              Expanded(
+                child: Row(
+                  children: [
+                    // Левый столбец
+                    Expanded(
+                      child: Column(
+                        children: [
+                          // Карта занимает всё оставшееся пространство
+                          const Expanded(child: Receiver50PacketMap()),
+
+                          // Виджеты с расстояниями и координатами занимают только минимальное пространство
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Consumer<ReceiverNotifier>(
+                                builder: (context, notifier, _) {
+                                  return MarkerDistanceDisplay(
+                                    markerLocation: notifier.markerLocation,
+                                    markerHeight: notifier.markerHeight,
+                                    currentLocationGPS: notifier.gpsLocation,
+                                    currentHeightGPS: notifier.gpsHeight,
+                                    currentLocationGLN: notifier.glnLocation,
+                                    currentHeightGLN: notifier.glnHeight,
+                                    currentLocationGAL: notifier.galLocation,
+                                    currentHeightGAL: notifier.galHeight,
+                                    currentLocationBDS: notifier.bdsLocation,
+                                    currentHeightBDS: notifier.bdsHeight,
+                                  );
+                                },
+                              ),
+                              const Divider(),
+                              const Receiver50PacketCoord(),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const VerticalDivider(
+                      thickness: 1.5,
+                      indent: 0,
+                      endIndent: 0,
+                    ),
+                    // Правый столбец
+                    Expanded(
+                      child: Column(
+                        children: [
+                          ReceiverF5PacketData(),
+                          const Divider(),
+                          ReceiverF5PacketSatellites(),
+                        ],
+                      ),
+                    ),
+                    const VerticalDivider(
+                      thickness: 1.5,
+                      indent: 0,
+                      endIndent: 0,
+                    ),
+                    const Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Receiver55PacketData(),
+                          ),
+                          Divider(),
+                          Receiver50PacketAbsV(),
+                          Divider(),
+                          Receiver50PacketTow(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
@@ -134,14 +212,14 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                   const SizedBox(width: 20),
                   const CopyCoordinatesButton(),
                   const SizedBox(width: 20),
-                  // const RemoveMarkerButton(),
+                  const RemoveMarkerButton(),
                 ],
               ),
-              const SizedBox(height: 20),
-              ReceiverF5PacketSatellites(),
-
-              const SizedBox(height: 20),
-              const Receiver50PacketCoord(),
+              const Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Divider(),
+                ReceiverWidgetMarkerTextField(),
+              ]))
 
               // const SizedBox(height: 20),
               // const Receiver50PacketTow(),
@@ -155,31 +233,6 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
 
               // const SizedBox(height: 20),
               // const Receiver50PacketMap(),
-
-              // const SizedBox(height: 20),
-              // Consumer<ReceiverNotifier>(
-              //   builder: (context, notifier, _) {
-              //     return MarkerDistanceDisplay(
-              //       markerLocation: notifier.markerLocation,
-              //       markerHeight: notifier.markerHeight,
-              //       currentLocationGPS: notifier.gpsLocation,
-              //       currentHeightGPS: notifier.gpsHeight,
-              //       currentLocationGLN: notifier.glnLocation,
-              //       currentHeightGLN: notifier.glnHeight,
-              //       currentLocationGAL: notifier.galLocation,
-              //       currentHeightGAL: notifier.galHeight,
-              //       currentLocationBDS: notifier.bdsLocation,
-              //       currentHeightBDS: notifier.bdsHeight,
-              //     );
-              //   },
-              // ),
-              // const SizedBox(height: 20),
-              // const ReceiverWidgetMarkerTextField(),
-
-              // const SizedBox(height: 20),
-              // const ReceiverF5Packet(),
-              // const SizedBox(height: 20),
-              // const Receiver50PacketCoord(),
             ],
           ),
         ),

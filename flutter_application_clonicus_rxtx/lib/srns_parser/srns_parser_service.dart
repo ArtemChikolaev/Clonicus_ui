@@ -21,6 +21,7 @@ class ParsingService {
     _subscription?.cancel();
     _subscription = IsolateManager.stream.listen((message) {
       _addParsedData(message.map((data) => data.toString()).toList());
+      // print('Parsed data received in srns_parser_service: $message');
     });
   }
 

@@ -45,7 +45,6 @@ class MarkerDistanceDisplay extends StatelessWidget {
     return Column(
       children: [
         const Divider(),
-        const SizedBox(height: 2),
         SelectableText(
           'Координаты маркера: ${markerLocation!.latitude.toStringAsFixed(7)}°, ${markerLocation!.longitude.toStringAsFixed(7)}°${markerHeight != null ? ', ${markerHeight!.toStringAsFixed(2)} м' : ''}',
           style: const TextStyle(fontSize: 12, color: Colors.black),

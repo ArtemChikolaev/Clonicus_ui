@@ -28,7 +28,6 @@ class ReceiverWidgetMarkerTextFieldState extends State<ReceiverWidgetMarkerTextF
 
     return Column(
       children: [
-        const SizedBox(height: 20),
         Center(
           child: ElevatedButton(
             onPressed: () {
