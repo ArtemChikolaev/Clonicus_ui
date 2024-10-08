@@ -79,16 +79,17 @@ class TCPProvider extends ChangeNotifier {
           if (_isRecording) {
             _writeToFile(data); // Запись бинарных данных
           }
+          _appendOutput(String.fromCharCodes(data)); // Добавление данных в вывод
           notifyListeners();
         },
         onDone: () {
-          _output += '\nConnection closed.\n';
+          _appendOutput('\nConnection closed.\n');
           _isConnected = false;
           _isListening = false;
           notifyListeners();
         },
         onError: (error) {
-          _output += '\nError: $error\n';
+          _appendOutput('\nError: $error\n');
           _isListening = false;
           notifyListeners();
         },
@@ -129,6 +130,13 @@ class TCPProvider extends ChangeNotifier {
     } catch (e) {
       _output += '\nError writing to file: $e\n';
       notifyListeners();
+    }
+  }
+
+  void _appendOutput(String data) {
+    _output += data;
+    if (_output.length > 2000) {
+      _output = _output.substring(_output.length - 2000); // Обрезаем до 2000 символов
     }
   }
 }

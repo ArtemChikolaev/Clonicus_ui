@@ -45,7 +45,7 @@ class ReceiverF5PacketData extends StatelessWidget {
                       fit: FlexFit.loose,
                       child: GestureDetector(
                         onHorizontalDragUpdate: (details) {
-                          const double scrollSpeedFactor = 100.0;
+                          const double scrollSpeedFactor = 120.0;
                           _scrollController.animateTo(
                             _scrollController.offset - details.delta.dx * scrollSpeedFactor,
                             duration: const Duration(milliseconds: 100),

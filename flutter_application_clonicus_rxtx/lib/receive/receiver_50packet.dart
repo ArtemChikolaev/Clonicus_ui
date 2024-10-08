@@ -1,6 +1,8 @@
 import 'dart:collection';
 import 'package:latlong2/latlong.dart';
 
+import 'receiver_50packet_time.dart';
+
 class FiftyPacketData {
   final int wn;
   final double tow;
@@ -284,18 +286,42 @@ void _processNavSystemData(
 Future<String?> readLastTowFromFiftyPacket(List<String> rawData) async {
   List<FiftyPacketData> packetDataList = filterFiftyPacketData(rawData);
 
-  String? lastTow;
+  if (packetDataList.isEmpty) return null; // Если данных нет
 
-  // Проходим по каждому объекту класса FiftyPacketData
+  String? lastTow;
+  Calendar? calendarTime;
+  GTime? latestTime; // Храним самое свежее время
+
   for (var packet in packetDataList) {
-    if (lastTow == null || packet.tow.toString() != lastTow) {
-      // Если нашли новое значение TOW, обновляем
+    // Преобразуем TOW и WN в GTime
+    GTime gTime = convertTowToGTime(packet.wn, packet.tow);
+
+    // Проверяем, если latestTime не null и текущее время новее
+    if (latestTime == null || gTime.time > latestTime.time) {
+      // Обновляем самое свежее время
+      latestTime = gTime;
+
+      // Создаем объект Calendar для преобразования
+      calendarTime = Calendar(
+        year: 0,
+        month: 0,
+        day: 0,
+        hour: 0,
+        minute: 0,
+        second: 0,
+        frsec: 0.0,
+      );
+
+      // Преобразуем время в календарный формат
+      tai2calendar(gTime, calendarTime);
+
+      // Сохраняем последнее значение TOW
       lastTow = packet.tow.toString();
-      // print('Новое значение TOW: $lastTow');
     }
   }
 
-  return lastTow;
+  // Возвращаем форматированное время, если оно доступно
+  return lastTow != null ? formatCalendarTime(calendarTime!) : null;
 }
 
 double _calculateAverage(List<double> values) {
@@ -305,18 +331,6 @@ double _calculateAverage(List<double> values) {
   }
   return sum / values.length;
 }
-
-// LatLng _calculateAverageLatLng(List<LatLng> locations) {
-//   double sumLat = 0.0;
-//   double sumLng = 0.0;
-//   for (var location in locations) {
-//     sumLat += location.latitude;
-//     sumLng += location.longitude;
-//   }
-//   double avgLat = sumLat / locations.length;
-//   double avgLng = sumLng / locations.length;
-//   return LatLng(avgLat, avgLng);
-// }
 
 // Очереди для хранения последних значений скорости для каждой системы
 final Queue<double> absVGPSQueue = Queue();

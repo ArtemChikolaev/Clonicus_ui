@@ -159,7 +159,7 @@ class Receiver50PacketAbsV extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.0),
-      child: Text(
+      child: SelectableText(
         'Скорость НАП по системе $systemName: $absVValue м/с',
         style: TextStyle(fontSize: 12, color: color),
       ),

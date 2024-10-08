@@ -134,9 +134,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                     const Expanded(
                       child: Column(
                         children: [
-                          Expanded(
-                            child: Receiver55PacketData(),
-                          ),
+                          Expanded(child: Receiver55PacketData()),
                           Divider(),
                           Receiver50PacketAbsV(),
                           Divider(),
@@ -196,7 +194,6 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                     ),
                   ),
                   const SizedBox(width: 20),
-                  // Кнопка для сброса всего UI
                   ElevatedButton(
                     onPressed: () {
                       _resetUI();
@@ -220,19 +217,6 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                 Divider(),
                 ReceiverWidgetMarkerTextField(),
               ]))
-
-              // const SizedBox(height: 20),
-              // const Receiver50PacketTow(),
-
-              // const SizedBox(height: 20),
-              // const Receiver50PacketAbsV(),
-              // const SizedBox(height: 20),
-              // const Expanded(
-              //   child: Receiver55PacketData(),
-              // )
-
-              // const SizedBox(height: 20),
-              // const Receiver50PacketMap(),
             ],
           ),
         ),

@@ -73,7 +73,7 @@ class SRNSParser {
   late RandomAccessFile _raf; // Для работы с файлом
   int _filePosition = 0; // Позиция текущего чтения в файле
   late Timer _timer; // Таймер для считывания байтов
-  static const int _readDelay = 1000; // Задержка в миллисекундах (раз в секунду)
+  static const int _readDelay = 1; // Задержка в миллисекундах (раз в секунду)
   late int _chunkSize; // Размер блока для чтения данных (определяется динамически)
   bool _isReading = false; // Флаг для блокировки выполнения асинхронной операции
   bool _fileEndReached = false; // Флаг для остановки, когда файл прочитан
@@ -104,7 +104,7 @@ class SRNSParser {
         ]);
       });
 
-      _timer = Timer.periodic(const Duration(milliseconds: _readDelay), (timer) async {
+      _timer = Timer.periodic(const Duration(seconds: _readDelay), (timer) async {
         int currentFileSize = await _file.length();
 
         if (_filePosition >= currentFileSize) {
