@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_clonicus_rxtx/receive/receiver_notifier.dart';
 import 'package:provider/provider.dart';
+import 'bash/bash_terminal_page.dart';
 import 'tcp_client/tcp_provider.dart';
 import 'receive/receiver_page.dart';
 import 'ssh/ssh_provider.dart';
@@ -67,6 +68,16 @@ class HomePage extends StatelessWidget {
                   fontSize: 24,
                 ),
               ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.terminal),
+              title: const Text('Bash terminal'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BashTerminalPage()),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.settings_remote),

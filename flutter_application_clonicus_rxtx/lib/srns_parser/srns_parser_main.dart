@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:io';
-import 'srns_isolate.manager.dart';
 import 'srns_parser_other_func.dart';
 import 'srns_parser_structure.dart';
 
@@ -47,6 +46,7 @@ class ProtocolSRNS {
         // Обрабатываем пакет и сразу отправляем данные
         List<Map<String, dynamic>> parsedData = processPacket(packetData);
         for (var data in parsedData) {
+          // print('packetStreamController: $parsedData');
           packetStreamController.add(data); // Отправляем данные пакета в поток
         }
 
@@ -172,63 +172,53 @@ class SRNSParser {
 }
 
 class SRNSParserContinious {
-  final File _file;
-  Uint8List _buffer = Uint8List(0);
-  final ProtocolSRNS _protocol = ProtocolSRNS(); // Создаем экземпляр протокола
-  int _bytesProcessed = 0; // Указатель на количество обработанных байтов
-  static const int maxBufferSize = 100000; // Максимальный размер буфера
   final StreamController<List<Map<String, dynamic>>> _streamController = StreamController.broadcast();
+  final ProtocolSRNS _protocol = ProtocolSRNS(); // Протокол для обработки данных
+  Uint8List _buffer = Uint8List(0); // Буфер для данных
+  final int maxBufferSize = 10000; // Максимальный размер буфера (10000 байт)
+  final List<Map<String, dynamic>> _currentParsedData = []; // Список текущих распарсенных данных
+  Timer? _timer;
 
-  SRNSParserContinious(String filePath) : _file = File(filePath) {
-    // Подписываемся на поток данных пакетов
+  Stream<List<Map<String, dynamic>>> get stream => _streamController.stream;
+
+  SRNSParserContinious() {
+    // Подписываемся на поток данных из протокола только один раз при инициализации
     _protocol.packetStream.listen((packetData) {
-      // Поскольку packetData — это Map<String, dynamic>, оборачиваем его в список
-      _streamController.add([
-        packetData
-      ]);
+      _currentParsedData.add(packetData);
     });
   }
 
-  // Метод для получения потока данных
-  Stream<List<Map<String, dynamic>>> get stream => _streamController.stream;
-
   Future<void> start() async {
-    RandomAccessFile raf = await _file.open();
-    int fileSize = await _file.length();
-    _bytesProcessed = fileSize;
-
-    while (true) {
-      fileSize = await _file.length();
-      if (fileSize > _bytesProcessed) {
-        await raf.setPosition(_bytesProcessed);
-        Uint8List newData = await raf.read(fileSize - _bytesProcessed);
-        _bytesProcessed = fileSize;
-
-        if (newData.isNotEmpty) {
-          _buffer = Uint8List.fromList(_buffer + newData);
-
-          // Ограничиваем размер буфера
-          if (_buffer.length > maxBufferSize) {
-            int excessSize = _buffer.length - maxBufferSize;
-            _buffer = _buffer.sublist(excessSize);
-          }
-
-          // Проверяем и обрабатываем пакеты с использованием _protocol
-          _protocol.checkPacket(_buffer); // Метод checkPacket теперь void, просто вызываем его
-        }
+    // Запускаем таймер для отправки распарсенных данных раз в секунду
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_currentParsedData.isNotEmpty) {
+        // print('Sending parsed data: $_currentParsedData');
+        _streamController.add(List.from(_currentParsedData));
+        _currentParsedData.clear();
+      } else {
+        print('No new data to send...');
       }
+    });
+  }
 
-      // Ожидание перед следующим циклом
-      await Future.delayed(const Duration(seconds: 1));
+  Future<void> addData(Uint8List newData) async {
+    _buffer = Uint8List.fromList(_buffer + newData);
+    // print('Data length in isolate before check: ${_buffer.length}');
 
-      // Выход из цикла, если флаг IsolateManager.shouldContinue установлен в false
-      if (!IsolateManager.shouldContinue) {
-        break;
-      }
+    // Проверяем размер буфера
+    if (_buffer.length > maxBufferSize) {
+      int excessSize = _buffer.length - maxBufferSize;
+      _buffer = _buffer.sublist(excessSize);
+      // print('Buffer trimmed 2: NEW size is ${_buffer.length}');
     }
 
-    // Закрытие файла и потока данных
-    await raf.close();
-    await _streamController.close();
+    // Обрабатываем данные сразу, без задержек
+    _protocol.checkPacket(_buffer);
+  }
+
+  void dispose() {
+    _timer?.cancel();
+    _streamController.close();
+    _protocol.dispose();
   }
 }

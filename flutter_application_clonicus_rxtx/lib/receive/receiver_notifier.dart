@@ -49,7 +49,6 @@ class ReceiverNotifier extends ChangeNotifier {
 
   LatLng? get bdsLocation => _bdsLocation;
   double? get bdsHeight => _bdsHeight;
-  
 
   // Методы для установки координат GPS
   void setGPSLocation(LatLng location, double height) {
@@ -120,17 +119,38 @@ class ReceiverNotifier extends ChangeNotifier {
     return false; // Парсер не был запущен
   }
 
-  void toggleContinuousParsingFile() async {
-    if (_isDisposed) return; // Проверяем, не уничтожен ли объект
-    if (_parsingService.isContinuousParsing) {
-      await _parsingService.stopContinuousParsingFile();
-      _clearData();
-      _isParserActive = false;
+  // Метод для запуска парсинга TCP
+  Future<bool> startContinuousParsingTcp() async {
+    if (_isDisposed) return false; // Проверка на уничтожение объекта
+
+    if (!_parsingService.isContinuousParsing) {
+      try {
+        _isParserActive = true;
+        await _parsingService.startContinuousParsingTcp();
+        _notifyIfNotDisposed();
+        return true; // Парсер успешно запущен
+      } catch (e) {
+        print('Error starting parsing TCP: $e');
+        return false; // Ошибка при запуске парсера
+      }
+    }
+    return true; // Парсер уже запущен
+  }
+
+// Метод для остановки постоянного парсинга TCP
+  Future<bool> stopContinuousParsingTcp() async {
+    if (_isDisposed) return false;
+
+    // Удалим проверку на статус парсинга и всегда будем пытаться остановить процесс
+    try {
+      await _parsingService.stopContinuousParsingTcp();
+      _isParserActive = false; // Обновляем флаг активности парсера
       _notifyIfNotDisposed();
-    } else {
-      _isParserActive = true;
-      await _parsingService.startContinuousParsingFile();
-      _notifyIfNotDisposed();
+      print('Successfully stopped continuous parsing');
+      return true; // Парсер успешно остановлен
+    } catch (e) {
+      print('Error stopping continuous parsing: $e');
+      return false; // Ошибка при остановке
     }
   }
 

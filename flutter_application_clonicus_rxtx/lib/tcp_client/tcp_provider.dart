@@ -14,6 +14,8 @@ class TCPProvider extends ChangeNotifier {
   ScrollController scrollController = ScrollController();
 
   final StreamController<Uint8List> _dataController = StreamController<Uint8List>.broadcast();
+  StreamSubscription? _subscription; // Добавляем переменную для подписки
+  Socket? get socket => _socket;
 
   String get output => _output;
   bool get isConnected => _isConnected;
@@ -73,7 +75,8 @@ class TCPProvider extends ChangeNotifier {
   void _startListening() {
     if (_socket != null && !_isListening) {
       _isListening = true;
-      _socket!.listen(
+      _subscription = _socket!.listen(
+        // Сохраняем подписку
         (data) {
           _dataController.add(data); // Передача данных в StreamController
           if (_isRecording) {
@@ -100,6 +103,7 @@ class TCPProvider extends ChangeNotifier {
 
   void _stopListening() {
     _isListening = false;
+    _subscription?.cancel(); // Используем подписку для отмены
     _socket?.destroy();
   }
 
@@ -135,8 +139,17 @@ class TCPProvider extends ChangeNotifier {
 
   void _appendOutput(String data) {
     _output += data;
-    if (_output.length > 2000) {
-      _output = _output.substring(_output.length - 2000); // Обрезаем до 2000 символов
+    if (_output.length > 3000) {
+      _output = _output.substring(_output.length - 3000); // Обрезаем до 3000 символов
+    }
+  }
+
+  Future<void> stopStream() async {
+    if (_subscription != null) {
+      await _subscription!.cancel();
+      _isListening = false; // Обновляем флаг, что прослушивание остановлено
+      _socket?.destroy(); // Уничтожаем соединение сокета
+      notifyListeners();
     }
   }
 }

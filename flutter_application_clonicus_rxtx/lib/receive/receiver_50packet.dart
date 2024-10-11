@@ -235,6 +235,11 @@ void _processNavSystemData(
   bool showAllPoints,
   Queue<LatLng> allPoints,
 ) {
+  // Проверяем, если широта или долгота равны нулю, не выводим данные
+  if (latitude == 0.0 && longitude == 0.0) {
+    lastCoordinates.remove(systemName);
+    return;
+  }
   // Проверяем размер очереди, удаляем старые данные, если превышен лимит
   if (recentLocations.length >= 20) {
     recentLocations.removeFirst();

@@ -52,7 +52,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
 
   void _resetUIAndStartParsingTcp(ReceiverNotifier notifier) {
     // Сначала запускаем парсер
-    notifier.toggleContinuousParsingFile();
+    notifier.startContinuousParsingTcp();
     _resetUI();
   }
 
@@ -67,6 +67,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Receiver Page'),
+          centerTitle: true,
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -82,7 +83,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                       child: Column(
                         children: [
                           // Карта занимает всё оставшееся пространство
-                          const Expanded(child: Receiver50PacketMap()),
+                          // const Expanded(child: Receiver50PacketMap()),
 
                           // Виджеты с расстояниями и координатами занимают только минимальное пространство
                           Column(
@@ -180,16 +181,31 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                     ),
                   ),
                   const SizedBox(width: 20),
+// Пример проверки статуса
                   Consumer<ReceiverNotifier>(
-                    builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isContinuousParsing ? null : () => _resetUIAndStartParsingTcp(notifier),
-                      child: Text(notifier.isContinuousParsing ? 'Parsing tcp-port...' : 'Start Parsing tcp-port'),
-                    ),
+                    builder: (context, notifier, _) {
+                      return ElevatedButton(
+                        onPressed: () async {
+                          final isStarted = await notifier.startContinuousParsingTcp();
+                          if (isStarted) {
+                            _resetUIAndStartParsingTcp(notifier);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Started parsing tcp-port')),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Parsing failed: tcp-port not active')),
+                            );
+                          }
+                        },
+                        child: const Text('Start Parsing tcp-port'),
+                      );
+                    },
                   ),
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.isContinuousParsing ? notifier.toggleContinuousParsingFile : null,
+                      onPressed: notifier.stopContinuousParsingTcp,
                       child: const Text('Stop Parsing tcp-port'),
                     ),
                   ),
