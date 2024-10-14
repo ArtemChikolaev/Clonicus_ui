@@ -69,18 +69,57 @@ class ParsingService {
 
   StreamSubscription<Uint8List>? tcpStreamSubscription;
 
-  Future<void> startContinuousParsingTcp() async {
-    if (isContinuousParsingNotifier.value || _isDisposed) return;
+  Future<int> startContinuousParsingTcp(bool parse) async {
+    if (_isDisposed) return -1; // Если ресурс уже освобожден, возвращаем -1
 
-    isContinuousParsingNotifier.value = true; // Устанавливаем флаг здесь
+    Timer? timeoutTimer;
     Uint8List accumulatedData = Uint8List(0);
+    const int maxBufferSize = 7000;
+    const int timeoutInSeconds = 5;
 
-    // Подписываемся на поток данных от TCP-провайдера
+    // Если флаг parse = false, то останавливаем работу
+    if (!parse) {
+      print('Stopping continuous parsing...');
+      isContinuousParsingNotifier.value = false; // Сброс флага
+      await tcpStreamSubscription?.cancel(); // Отписываемся от потока данных
+      print('Continuous parsing stopped');
+      return -1; // Возвращаем -1, указывая на остановку
+    }
+
+    // Если парсер уже запущен
+    if (isContinuousParsingNotifier.value) {
+      return 1; // Возвращаем 1, если уже запущен
+    }
+
+    isContinuousParsingNotifier.value = true; // Устанавливаем флаг, что парсер запущен
+
+    Completer<int> completer = Completer<int>(); // Используем Completer для возврата значения при тайм-ауте
+
+    // Перезапускаем таймер при получении новых данных
+    void resetTimeoutTimer() {
+      timeoutTimer?.cancel(); // Останавливаем предыдущий таймер
+      timeoutTimer = Timer(const Duration(seconds: timeoutInSeconds), () async {
+        print('Timeout: No data received within $timeoutInSeconds seconds');
+
+        if (!_isDisposed) {
+          isContinuousParsingNotifier.value = false; // Сбрасываем флаг парсера
+        }
+        await tcpStreamSubscription?.cancel(); // Отписываемся от потока данных
+        timeoutTimer?.cancel(); // Останавливаем таймер
+        print('Continuous parsing stopped due to timeout');
+
+        if (!completer.isCompleted) {
+          completer.complete(-1); // Возвращаем -1 при тайм-ауте
+        }
+      });
+    }
+
+// Подписываемся на поток данных от TCP-провайдера
     tcpStreamSubscription = _tcpProvider.dataStream.listen((Uint8List newData) async {
-      accumulatedData = Uint8List.fromList(accumulatedData + newData);
-      // print('buffer: ${accumulatedData.length}');
+      resetTimeoutTimer(); // Перезапускаем таймер при получении данных
 
-      const int maxBufferSize = 5000;
+      accumulatedData = Uint8List.fromList(accumulatedData + newData);
+
       if (accumulatedData.length >= maxBufferSize) {
         Uint8List dataToSend = accumulatedData.sublist(0, maxBufferSize);
         accumulatedData = accumulatedData.sublist(maxBufferSize);
@@ -88,43 +127,30 @@ class ParsingService {
         // Передаем данные в изолятор для парсинга
         await isolateManagerInstance.sendDataToIsolate(dataToSend);
       }
+
+      if (!completer.isCompleted) {
+        completer.complete(1); // Возвращаем 1 при успешном получении данных
+      }
     }, onError: (e) {
       print('Error receiving data: $e');
+      timeoutTimer?.cancel();
+      if (!_isDisposed) {
+        isContinuousParsingNotifier.value = false; // Сбрасываем флаг при ошибке
+      }
+      tcpStreamSubscription?.cancel(); // Добавляем отмену подписки в случае ошибки
+      if (!completer.isCompleted) {
+        completer.complete(-1); // Возвращаем -1 в случае ошибки
+      }
+    }, onDone: () {
+      timeoutTimer?.cancel(); // Останавливаем таймер при завершении потока
+      if (!_isDisposed) {
+        isContinuousParsingNotifier.value = false; // Сбрасываем флаг при завершении потока
+      }
+      tcpStreamSubscription?.cancel(); // Убеждаемся, что подписка отменена
     });
 
-    // Добавляем слушателя на завершение парсинга
-    parsingCompleteNotifier.addListener(_onParsingComplete);
-
-    print('Continuous parsing started');
-  }
-
-// Метод для остановки парсинга TCP
-  Future<void> stopContinuousParsingTcp() async {
-    if (isContinuousParsingNotifier.value) {
-      // Проверяем, идет ли парсинг
-      if (tcpStreamSubscription != null) {
-        await tcpStreamSubscription?.cancel(); // Отменяем подписку
-        tcpStreamSubscription = null; // Обнуляем подписку
-        print('TCP stream subscription canceled.');
-      }
-
-      // Устанавливаем флаг, что парсинг завершен
-      isContinuousParsingNotifier.value = false;
-
-      // Удаляем слушателя завершения парсинга
-      parsingCompleteNotifier.removeListener(_onParsingComplete);
-
-      // Останавливаем прослушивание TCP
-      await _tcpProvider.stopStream(); // Очищаем поток данных и закрываем сокет
-
-      // Дополнительно очищаем изоляторы
-      await IsolateManager.stopAllIsolates(); // Завершаем все активные изоляторы
-      _addParsedData([
-        'Continuous parsing stopped'
-      ]);
-    } else {
-      print('Parsing was not active.');
-    }
+    resetTimeoutTimer(); // Инициализируем таймер при запуске
+    return completer.future; // Возвращаем результат через Completer
   }
 
   void _addParsedData(List<String> data) {

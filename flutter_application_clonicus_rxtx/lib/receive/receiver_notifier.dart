@@ -6,8 +6,8 @@ import 'package:latlong2/latlong.dart';
 class ReceiverNotifier extends ChangeNotifier {
   final ParsingService _parsingService;
   final ScrollController scrollController = ScrollController();
-  // ignore: unused_field
   bool _isParserActive = false; // Переменная для отслеживания активного парсера
+  bool get isParserActive => _isParserActive; // Геттер для состояния парсера
 
   bool _isDisposed = false; // Флаг для отслеживания, уничтожен ли объект
 
@@ -34,6 +34,14 @@ class ReceiverNotifier extends ChangeNotifier {
   void _notifyIfNotDisposed() {
     if (!_isDisposed) {
       notifyListeners();
+    }
+  }
+
+  // Обновление состояния активности парсера
+  void _updateParserActiveState() {
+    if (!_isDisposed) {
+      _isParserActive = _parsingService.isContinuousParsing;
+      _notifyIfNotDisposed();
     }
   }
 
@@ -98,9 +106,11 @@ class ReceiverNotifier extends ChangeNotifier {
       final outputFile = _parsingService.tcpProvider.outputFile;
       if (outputFile.existsSync()) {
         await _parsingService.startParsingFile(outputFile.path);
+        _isParserActive = true; // Парсер активен
         _notifyIfNotDisposed(); // Уведомляем слушателей о запуске парсера
         return true; // Успешно запущен
       } else {
+        _isParserActive = false; // Парсер не активен
         return false; // Файл не найден
       }
     }
@@ -108,46 +118,63 @@ class ReceiverNotifier extends ChangeNotifier {
   }
 
   // Метод для остановки парсера
+
   Future<bool> stopParsingFile() async {
     if (_isDisposed) return false;
 
     if (_parsingService.isParsing) {
       await _parsingService.stopParsingFile();
+      _isParserActive = false; // Парсер больше не активен
       _notifyIfNotDisposed(); // Уведомляем слушателей о остановке парсера
       return true; // Успешно остановлен
     }
     return false; // Парсер не был запущен
   }
 
-  // Метод для запуска парсинга TCP
-  Future<bool> startContinuousParsingTcp() async {
-    if (_isDisposed) return false; // Проверка на уничтожение объекта
+  // Методы для запуска или остановки парсинга TCP
+  Future<int> startContinuousParsingTcp(bool parse) async {
+    if (_isDisposed) return -1;
 
-    if (!_parsingService.isContinuousParsing) {
-      try {
-        _isParserActive = true;
-        await _parsingService.startContinuousParsingTcp();
-        _notifyIfNotDisposed();
-        return true; // Парсер успешно запущен
-      } catch (e) {
-        print('Error starting parsing TCP: $e');
-        return false; // Ошибка при запуске парсера
+    try {
+      int result = await _parsingService.startContinuousParsingTcp(parse);
+
+      // Обновляем флаг активности парсера в зависимости от результата
+      if (result == -1) {
+        _isParserActive = false; // Сбрасываем флаг активности
+        print('Parser stopped due to timeout or error, stopping parsing...');
+      } else {
+        _isParserActive = true; // Парсер активен
       }
+
+      // Уведомляем слушателей о смене состояния
+      _notifyIfNotDisposed(); // Добавляем уведомление
+
+      return result;
+    } catch (e) {
+      print('Error during TCP parsing: $e');
+      _isParserActive = false; // Сбрасываем флаг активности в случае ошибки
+      _notifyIfNotDisposed(); // Уведомляем об изменении состояния
+      return -1;
     }
-    return true; // Парсер уже запущен
   }
 
 // Метод для остановки постоянного парсинга TCP
-  Future<bool> stopContinuousParsingTcp() async {
+  Future<bool> stopContinuousParsingTcp(bool parse) async {
     if (_isDisposed) return false;
 
-    // Удалим проверку на статус парсинга и всегда будем пытаться остановить процесс
     try {
-      await _parsingService.stopContinuousParsingTcp();
-      _isParserActive = false; // Обновляем флаг активности парсера
-      _notifyIfNotDisposed();
-      print('Successfully stopped continuous parsing');
-      return true; // Парсер успешно остановлен
+      // Передаем false для остановки парсинга
+      int result = await startContinuousParsingTcp(parse);
+
+      if (result == -1) {
+        _isParserActive = false; // Обновляем флаг активности парсера
+        _notifyIfNotDisposed();
+        print('Successfully stopped continuous parsing');
+        return true; // Парсер успешно остановлен
+      } else {
+        print('Error: Parsing was not stopped as expected');
+        return false; // Ошибка при остановке
+      }
     } catch (e) {
       print('Error stopping continuous parsing: $e');
       return false; // Ошибка при остановке

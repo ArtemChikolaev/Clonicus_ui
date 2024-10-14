@@ -44,17 +44,26 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
     });
   }
 
-  void _resetUIAndStartParsingFile(ReceiverNotifier notifier) {
-    // Сначала запускаем парсер
-    notifier.startParsingFile();
-    _resetUI();
+  // Показ сообщения через SnackBar
+  void _showSnackBar(BuildContext context, String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
-  void _resetUIAndStartParsingTcp(ReceiverNotifier notifier) {
-    // Сначала запускаем парсер
-    notifier.startContinuousParsingTcp();
-    _resetUI();
-  }
+  // void _resetUIAndStartParsingFile(ReceiverNotifier notifier) {
+  //   // Сначала запускаем парсер
+  //   notifier.startParsingFile();
+  //   _resetUI();
+  // }
+
+  // void _resetUIAndStartParsingTcp(ReceiverNotifier notifier, bool parse) {
+  //   // Сначала запускаем парсер
+  //   notifier.startContinuousParsingTcp(parse);
+  //   // _resetUI();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +92,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                       child: Column(
                         children: [
                           // Карта занимает всё оставшееся пространство
-                          // const Expanded(child: Receiver50PacketMap()),
+                          const Expanded(child: Receiver50PacketMap()),
 
                           // Виджеты с расстояниями и координатами занимают только минимальное пространство
                           Column(
@@ -152,75 +161,84 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                 children: [
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: () async {
-                        final isStarted = await notifier.startParsingFile();
-                        if (isStarted) {
-                          _resetUIAndStartParsingFile(notifier);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Started parsing file')),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Parsing failed: file not found')),
-                          );
-                        }
-                      },
-                      child: const Text('Start Parsing file'),
+                      onPressed: notifier.isParserActive
+                          ? null // Отключаем кнопку, если парсер активен
+                          : () async {
+                              final isStarted = await notifier.startParsingFile();
+                              _showSnackBar(context, isStarted ? 'Started parsing file' : 'Parsing failed: file not found');
+                            },
+                      child: notifier.isParserActive ? const Text('Parsing file...') : const Text('Start Parsing file'),
                     ),
                   ),
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: () async {
-                        bool success = await notifier.stopParsingFile();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(success ? 'Stopped parsing file' : 'Parser was not running')),
-                        );
-                      },
+                      onPressed: notifier.isParserActive
+                          ? () async {
+                              bool success = await notifier.stopParsingFile();
+                              _showSnackBar(context, success ? 'Stopped parsing file' : 'Parser was not running');
+                            }
+                          : null, // Отключаем кнопку, если парсер не активен
                       child: const Text('Stop Parsing file'),
                     ),
                   ),
                   const SizedBox(width: 20),
-// Пример проверки статуса
                   Consumer<ReceiverNotifier>(
                     builder: (context, notifier, _) {
                       return ElevatedButton(
-                        onPressed: () async {
-                          final isStarted = await notifier.startContinuousParsingTcp();
-                          if (isStarted) {
-                            _resetUIAndStartParsingTcp(notifier);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Started parsing tcp-port')),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Parsing failed: tcp-port not active')),
-                            );
-                          }
-                        },
-                        child: const Text('Start Parsing tcp-port'),
+                        onPressed: notifier.isParserActive
+                            ? null
+                            : () async {
+                                bool parse = true;
+                                final result = await notifier.startContinuousParsingTcp(parse);
+
+                                if (result == 1) {
+                                  _showSnackBar(context, 'Started parsing TCP-port successfully');
+                                } else if (result == 0) {
+                                  bool parse = false;
+                                  bool stopResult = await notifier.stopContinuousParsingTcp(parse);
+                                  if (stopResult) {
+                                    print('Parsing stopped automatically due timeout');
+                                  }
+                                  _showSnackBar(context, 'No data received. Parsing stopped due to timeout');
+                                } else if (result == -1) {
+                                  bool parse = false;
+                                  bool stopResult = await notifier.stopContinuousParsingTcp(parse);
+                                  _showSnackBar(context, 'Parsing failed or manually stopped');
+                                  if (stopResult) {
+                                    print('Parsing stopped automatically due to error or timeout');
+                                  }
+                                }
+                              },
+                        child: notifier.isParserActive ? const Text('Parsing TCP-port...') : const Text('Start Parsing TCP-port'),
                       );
                     },
                   ),
                   const SizedBox(width: 20),
                   Consumer<ReceiverNotifier>(
-                    builder: (context, notifier, _) => ElevatedButton(
-                      onPressed: notifier.stopContinuousParsingTcp,
-                      child: const Text('Stop Parsing tcp-port'),
-                    ),
+                    builder: (context, notifier, _) {
+                      return ElevatedButton(
+                        onPressed: notifier.isParserActive
+                            ? () async {
+                                bool parse = false;
+                                bool stopResult = await notifier.stopContinuousParsingTcp(parse);
+                                _showSnackBar(context, stopResult ? 'Parsing TCP-port stopped successfully' : 'Failed to stop TCP-port parsing');
+                              }
+                            : null, // Делаем кнопку неактивной, если парсер не запущен
+                        child: const Text('Stop Parsing TCP-port'),
+                      );
+                    },
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
                     onPressed: () {
                       _resetUI();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('UI перестроен')),
-                      );
+                      _showSnackBar(context, 'UI rebuilt');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromARGB(255, 252, 149, 142),
                     ),
-                    child: const Text('Reset UI'),
+                    child: const Text('Reset UI (After Parse)'),
                   ),
                   const SizedBox(width: 20),
                   const CopyCoordinatesButton(),

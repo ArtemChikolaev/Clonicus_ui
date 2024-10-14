@@ -79,6 +79,10 @@ class IsolateManager {
 
   // Метод для отправки данных в изолятор
   Future<void> sendDataToIsolate(Uint8List data) async {
+    // if(isContinuousParsing) return;
+
+    isContinuousParsing = true;
+    isParsingNotifier.value = true; // Устанавливаем состояние парсинга в true
     // Запускаем новый изолятор для обработки порции данных
     ReceivePort receivePort = ReceivePort();
     Isolate isolate = await Isolate.spawn(
@@ -105,8 +109,9 @@ class IsolateManager {
 
     receivePort.listen((message) {
       if (message == 'done') {
-        // Изолятор завершил работу
-        // print('Isolate completed parsing.');
+        isContinuousParsing = false;
+        isParsingNotifier.value = false; // Обновляем состояние парсинга
+        parsingCompleteNotifier.value = true; // Уведомляем об
         timer.cancel(); // Останавливаем таймер, так как изолятор завершил работу
         receivePort.close(); // Закрываем порт после завершения
         isolate.kill(priority: Isolate.immediate); // Уничтожаем изолятор
@@ -121,39 +126,6 @@ class IsolateManager {
         }
       }
     });
-  }
-
-  // Метод для остановки всех изоляторов
-  static Future<void> stopAllIsolates() async {
-    for (var isolate in isolatePool) {
-      isolate.kill(priority: Isolate.immediate); // Останавливаем изолятор
-    }
-    isolatePool.clear(); // Очищаем пул изоляторов
-    print('All isolates stopped.');
-  }
-
-  // Остановка постоянного парсинга
-  static Future<void> stopContinuousParsingFile() async {
-    if (isContinuousParsing) {
-      isContinuousParsing = false;
-
-      // Отправляем сигнал на остановку для каждого изолята в пуле
-      for (var port in receivePorts) {
-        port.sendPort.send('stop');
-      }
-
-      // Ожидание завершения всех изоляторов
-      await Future.wait(isolatePool.map((isolate) async {
-        // Ждем завершения каждого изолятора
-        await isolate;
-        isolate.kill(priority: Isolate.immediate); // Уничтожаем изолятор
-      }));
-
-      // Очищаем ресурсы
-      cleanUpParsing();
-    } else {
-      print('Continuous parsing is not running.');
-    }
   }
 
   static Future<void> _startParsingFromFile(Map<String, dynamic> params) async {
@@ -204,37 +176,6 @@ class IsolateManager {
         'error': error.toString()
       });
     });
-  }
-
-  // Метод для остановки изолятора
-  static Future<void> stopIsolate() async {
-    if (_parsingIsolate != null && _receivePort != null) {
-      print('Stopping isolate...');
-
-      // Отправляем сигнал в изолятор на остановку
-      _receivePort!.sendPort.send('stop');
-
-      // Устанавливаем флаг остановки парсинга
-      isParsing = false;
-
-      // Ожидаем завершение изолятора
-      _parsingIsolate!.kill(priority: Isolate.immediate);
-      _parsingIsolate = null;
-
-      // Закрываем ReceivePort
-      _receivePort?.close();
-      _receivePort = null;
-
-      // Закрываем StreamController
-      if (_streamController != null && !_streamController!.isClosed) {
-        await _streamController!.close();
-        _streamController = null;
-      }
-
-      print('Isolate stopped successfully.');
-    } else {
-      print('No active isolate to stop.');
-    }
   }
 
   static void cleanUpParsing() {
