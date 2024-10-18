@@ -92,7 +92,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                       child: Column(
                         children: [
                           // Карта занимает всё оставшееся пространство
-                          const Expanded(child: Receiver50PacketMap()),
+                          // const Expanded(child: Receiver50PacketMap()),
 
                           // Виджеты с расстояниями и координатами занимают только минимальное пространство
                           Column(
@@ -164,7 +164,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                       onPressed: notifier.isParserActive
                           ? null // Отключаем кнопку, если парсер активен
                           : () async {
-                              final isStarted = await notifier.startParsingFile();
+                              final isStarted = await notifier.startParsingFile(context); // Передаем context
                               _showSnackBar(context, isStarted ? 'Started parsing file' : 'Parsing failed: file not found');
                             },
                       child: notifier.isParserActive ? const Text('Parsing file...') : const Text('Start Parsing file'),
@@ -190,20 +190,13 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                             ? null
                             : () async {
                                 bool parse = true;
-                                final result = await notifier.startContinuousParsingTcp(parse);
+                                final result = await notifier.startContinuousParsingTcp(parse, context); // передача context
 
                                 if (result == 1) {
                                   _showSnackBar(context, 'Started parsing TCP-port successfully');
-                                } else if (result == 0) {
-                                  bool parse = false;
-                                  bool stopResult = await notifier.stopContinuousParsingTcp(parse);
-                                  if (stopResult) {
-                                    print('Parsing stopped automatically due timeout');
-                                  }
-                                  _showSnackBar(context, 'No data received. Parsing stopped due to timeout');
                                 } else if (result == -1) {
                                   bool parse = false;
-                                  bool stopResult = await notifier.stopContinuousParsingTcp(parse);
+                                  bool stopResult = await notifier.stopContinuousParsingTcp(parse, context);
                                   _showSnackBar(context, 'Parsing failed or manually stopped');
                                   if (stopResult) {
                                     print('Parsing stopped automatically due to error or timeout');
@@ -221,7 +214,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                         onPressed: notifier.isParserActive
                             ? () async {
                                 bool parse = false;
-                                bool stopResult = await notifier.stopContinuousParsingTcp(parse);
+                                bool stopResult = await notifier.stopContinuousParsingTcp(parse, context);
                                 _showSnackBar(context, stopResult ? 'Parsing TCP-port stopped successfully' : 'Failed to stop TCP-port parsing');
                               }
                             : null, // Делаем кнопку неактивной, если парсер не запущен

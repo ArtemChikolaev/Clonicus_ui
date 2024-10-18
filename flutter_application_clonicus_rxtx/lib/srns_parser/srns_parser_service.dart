@@ -32,7 +32,7 @@ class ParsingService {
 
   TCPProvider get tcpProvider => _tcpProvider;
 
-  ValueNotifier<void> get parsingCompleteNotifier => IsolateManager.parsingCompleteNotifier;
+  ValueNotifier<bool> get parsingCompleteNotifier => IsolateManager.parsingCompleteNotifier;
 
   Future<void> startParsingFile(String filePath) async {
     if (isParsingNotifier.value || _isDisposed) return;
@@ -51,7 +51,8 @@ class ParsingService {
 
   void _onParsingComplete() {
     if (!_isDisposed) {
-      _completeParsing(); // Завершение парсинга
+      _completeParsing();
+      isParsingNotifier.value = false; // Обновляем флаг парсинга
     }
   }
 
@@ -74,7 +75,7 @@ class ParsingService {
 
     Timer? timeoutTimer;
     Uint8List accumulatedData = Uint8List(0);
-    const int maxBufferSize = 7000;
+    const int maxBufferSize = 7100;
     const int timeoutInSeconds = 5;
 
     // Если флаг parse = false, то останавливаем работу
@@ -93,6 +94,9 @@ class ParsingService {
 
     isContinuousParsingNotifier.value = true; // Устанавливаем флаг, что парсер запущен
 
+    // Добавляем слушателя на завершение парсинга
+    parsingCompleteNotifier.addListener(_onParsingComplete);
+
     Completer<int> completer = Completer<int>(); // Используем Completer для возврата значения при тайм-ауте
 
     // Перезапускаем таймер при получении новых данных
@@ -104,8 +108,10 @@ class ParsingService {
         if (!_isDisposed) {
           isContinuousParsingNotifier.value = false; // Сбрасываем флаг парсера
         }
+
         await tcpStreamSubscription?.cancel(); // Отписываемся от потока данных
         timeoutTimer?.cancel(); // Останавливаем таймер
+
         print('Continuous parsing stopped due to timeout');
 
         if (!completer.isCompleted) {
@@ -125,7 +131,7 @@ class ParsingService {
         accumulatedData = accumulatedData.sublist(maxBufferSize);
 
         // Передаем данные в изолятор для парсинга
-        await isolateManagerInstance.sendDataToIsolate(dataToSend);
+        await isolateManagerInstance.parsingTcpPortInIsolate(dataToSend);
       }
 
       if (!completer.isCompleted) {
@@ -147,6 +153,27 @@ class ParsingService {
         isContinuousParsingNotifier.value = false; // Сбрасываем флаг при завершении потока
       }
       tcpStreamSubscription?.cancel(); // Убеждаемся, что подписка отменена
+    });
+
+    tcpStreamSubscription?.onDone(() {
+      timeoutTimer?.cancel(); // Останавливаем таймер
+      if (!_isDisposed) {
+        isContinuousParsingNotifier.value = false; // Сбрасываем флаг при завершении потока
+      }
+      tcpStreamSubscription?.cancel(); // Убеждаемся, что подписка отменена
+      print('TCP Stream parsing completed');
+    });
+
+    tcpStreamSubscription?.onError((e) {
+      print('Error receiving data: $e');
+      timeoutTimer?.cancel();
+      if (!_isDisposed) {
+        isContinuousParsingNotifier.value = false; // Сбрасываем флаг при ошибке
+      }
+      tcpStreamSubscription?.cancel(); // Добавляем отмену подписки в случае ошибки
+      if (!completer.isCompleted) {
+        completer.complete(-1); // Возвращаем -1 в случае ошибки
+      }
     });
 
     resetTimeoutTimer(); // Инициализируем таймер при запуске

@@ -37,14 +37,6 @@ class ReceiverNotifier extends ChangeNotifier {
     }
   }
 
-  // Обновление состояния активности парсера
-  void _updateParserActiveState() {
-    if (!_isDisposed) {
-      _isParserActive = _parsingService.isContinuousParsing;
-      _notifyIfNotDisposed();
-    }
-  }
-
   // Геттеры для координат навигационных систем
   LatLng? get gpsLocation => _gpsLocation;
   double? get gpsHeight => _gpsHeight;
@@ -98,23 +90,35 @@ class ReceiverNotifier extends ChangeNotifier {
   bool get isParsing => _parsingService.isParsing;
   bool get isContinuousParsing => _parsingService.isContinuousParsing;
 
-  // Метод для запуска парсера
-  Future<bool> startParsingFile() async {
+// Метод для запуска парсера
+  Future<bool> startParsingFile(BuildContext context) async {
     if (_isDisposed) return false;
 
     if (!_parsingService.isParsing) {
       final outputFile = _parsingService.tcpProvider.outputFile;
       if (outputFile.existsSync()) {
         await _parsingService.startParsingFile(outputFile.path);
-        _isParserActive = true; // Парсер активен
-        _notifyIfNotDisposed(); // Уведомляем слушателей о запуске парсера
-        return true; // Успешно запущен
+        _isParserActive = true;
+        _notifyIfNotDisposed();
+
+        // Подписываемся на уведомление о завершении парсинга через экземпляр
+        _parsingService.parsingCompleteNotifier.addListener(() {
+          _isParserActive = false;
+          _notifyIfNotDisposed();
+
+          // Показываем SnackBar по завершению парсинга
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Parsing file complete')),
+          );
+        });
+
+        return true;
       } else {
-        _isParserActive = false; // Парсер не активен
-        return false; // Файл не найден
+        _isParserActive = false;
+        return false;
       }
     }
-    return true; // Парсер уже запущен
+    return true;
   }
 
   // Метод для остановки парсера
@@ -131,40 +135,49 @@ class ReceiverNotifier extends ChangeNotifier {
     return false; // Парсер не был запущен
   }
 
-  // Методы для запуска или остановки парсинга TCP
-  Future<int> startContinuousParsingTcp(bool parse) async {
+  Future<int> startContinuousParsingTcp(bool parse, BuildContext context) async {
     if (_isDisposed) return -1;
 
     try {
       int result = await _parsingService.startContinuousParsingTcp(parse);
 
-      // Обновляем флаг активности парсера в зависимости от результата
       if (result == -1) {
-        _isParserActive = false; // Сбрасываем флаг активности
+        _isParserActive = false;
         print('Parser stopped due to timeout or error, stopping parsing...');
       } else {
-        _isParserActive = true; // Парсер активен
+        _isParserActive = true;
       }
 
-      // Уведомляем слушателей о смене состояния
-      _notifyIfNotDisposed(); // Добавляем уведомление
+      _notifyIfNotDisposed();
 
+      // Подписываемся на уведомление о завершении парсинга
+      _parsingService.parsingCompleteNotifier.addListener(() {
+        _isParserActive = false;
+        _notifyIfNotDisposed();
+
+        // Показываем SnackBar по завершению парсинга
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('TCP parsing complete')),
+        );
+      });
+
+      _notifyIfNotDisposed();
       return result;
     } catch (e) {
       print('Error during TCP parsing: $e');
-      _isParserActive = false; // Сбрасываем флаг активности в случае ошибки
-      _notifyIfNotDisposed(); // Уведомляем об изменении состояния
+      _isParserActive = false;
+      _notifyIfNotDisposed();
       return -1;
     }
   }
 
 // Метод для остановки постоянного парсинга TCP
-  Future<bool> stopContinuousParsingTcp(bool parse) async {
+  Future<bool> stopContinuousParsingTcp(bool parse, BuildContext context) async {
     if (_isDisposed) return false;
 
     try {
       // Передаем false для остановки парсинга
-      int result = await startContinuousParsingTcp(parse);
+      int result = await startContinuousParsingTcp(parse, context);
 
       if (result == -1) {
         _isParserActive = false; // Обновляем флаг активности парсера

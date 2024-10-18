@@ -30,26 +30,27 @@ class IsolateManager {
     if (isParsing) return;
 
     isParsing = true;
-    isParsingNotifier.value = true; // Устанавливаем состояние парсинга в true
-    _receivePort = ReceivePort(); // Создаем новый ReceivePort
+    isParsingNotifier.value = true;
+    _receivePort = ReceivePort();
 
+    // Запускаем изолятор
     _parsingIsolate = await Isolate.spawn(
       _startParsingFromFile,
       {
         'filePath': filePath,
-        'sendPort': _receivePort!.sendPort, // Передаем SendPort
+        'sendPort': _receivePort!.sendPort,
       },
     );
 
+    // Слушаем сообщения из изолятора
     _receivePort!.listen((message) {
       if (message == 'done') {
-        isParsing = false; // Завершаем процесс парсинга
-        isParsingNotifier.value = false; // Обновляем состояние парсинга
-        parsingCompleteNotifier.value = true; // Уведомляем об окончании парсинга
-        cleanUpParsing();
+        isParsing = false;
+        isParsingNotifier.value = false;
+        parsingCompleteNotifier.value = true;
+        cleanUpParsing(); // Очищаем состояние изолятора после завершения
       } else if (message is List<Map<String, dynamic>>) {
-        // print('Received parsed data: $message');
-        _streamController?.add(message); // Передаем данные через StreamController
+        _streamController?.add(message);
       } else if (message is Map<String, dynamic>) {
         if (message.containsKey('error')) {
           print('Error during parsing: ${message['error']}');
@@ -57,6 +58,11 @@ class IsolateManager {
           print('Other message: $message');
         }
       }
+    }).onDone(() {
+      // Когда поток сообщений завершен, завершаем изолятор
+      _parsingIsolate?.kill(priority: Isolate.immediate);
+      _parsingIsolate = null;
+      isParsingNotifier.value = false; // Обновляем состояние кнопки
     });
   }
 
@@ -78,12 +84,11 @@ class IsolateManager {
   static List<ReceivePort> receivePorts = []; // Для управления портами
 
   // Метод для отправки данных в изолятор
-  Future<void> sendDataToIsolate(Uint8List data) async {
-    // if(isContinuousParsing) return;
+  Future<void> parsingTcpPortInIsolate(Uint8List data) async {
 
     isContinuousParsing = true;
     isParsingNotifier.value = true; // Устанавливаем состояние парсинга в true
-    // Запускаем новый изолятор для обработки порции данных
+
     ReceivePort receivePort = ReceivePort();
     Isolate isolate = await Isolate.spawn(
       _startContinuousParsingInIsolate,
@@ -93,13 +98,11 @@ class IsolateManager {
       },
     );
 
-    isolatePool.add(isolate); // Добавляем изолятор в пул
-    receivePorts.add(receivePort); // Сохраняем порт
+    isolatePool.add(isolate);
+    receivePorts.add(receivePort);
 
-    // Таймер для принудительного завершения, если изолятор зависнет
-    Timer timer = Timer(const Duration(seconds: 3), () {
+    Timer timer = Timer(const Duration(milliseconds: 2000), () {
       if (isolatePool.contains(isolate)) {
-        // print('Force killing isolate due to timeout.');
         isolate.kill(priority: Isolate.immediate);
         receivePort.close();
         isolatePool.remove(isolate);
@@ -109,16 +112,21 @@ class IsolateManager {
 
     receivePort.listen((message) {
       if (message == 'done') {
-        isContinuousParsing = false;
-        isParsingNotifier.value = false; // Обновляем состояние парсинга
-        parsingCompleteNotifier.value = true; // Уведомляем об
-        timer.cancel(); // Останавливаем таймер, так как изолятор завершил работу
-        receivePort.close(); // Закрываем порт после завершения
-        isolate.kill(priority: Isolate.immediate); // Уничтожаем изолятор
-        isolatePool.remove(isolate); // Удаляем из пула
-        receivePorts.remove(receivePort); // Удаляем порт
+        isolate.kill(priority: Isolate.immediate);
+        isolatePool.remove(isolate);
+        receivePorts.remove(receivePort);
+
+        // Проверка пула изоляторов
+        if (isolatePool.isEmpty) {
+          // Когда все изоляторы завершены, обновляем флаги
+          isContinuousParsing = false;
+          isParsingNotifier.value = false;
+          parsingCompleteNotifier.value = true;
+        }
+
+        timer.cancel();
+        receivePort.close();
       } else if (message is List<Map<String, dynamic>>) {
-        // Обрабатываем данные
         _streamController?.add(message);
       } else if (message is Map<String, dynamic>) {
         if (message.containsKey('error')) {
@@ -161,7 +169,6 @@ class IsolateManager {
 
     final srnsParser = SRNSParserContinious();
     await srnsParser.start();
-    // print('Parsing 10000 bytes of data.');
 
     srnsParser.addData(dataStream);
 
@@ -184,6 +191,13 @@ class IsolateManager {
     // Устанавливаем значение в false, если парсинг завершен
     _parsingIsolate?.kill(priority: Isolate.immediate);
     _parsingIsolate = null;
+
+    if (isolatePool.isEmpty) {
+      isParsingNotifier.value = false;
+      isContinuousParsing = false;
+      parsingCompleteNotifier.value = true;
+    }
+
     _streamController?.close();
     _streamController = null; // Очищаем контроллер, чтобы он мог быть пересоздан
   }
