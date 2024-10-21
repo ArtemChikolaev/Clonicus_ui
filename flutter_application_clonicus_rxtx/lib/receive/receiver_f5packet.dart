@@ -206,85 +206,85 @@ Future<List<Map<String, String>>> processF5PacketData(List<String> rawData) asyn
   List<Map<String, String>> result = [];
 
   // Добавляем данные для каждой системы
-  gpsSatellites.values.forEach((packet) {
+  for (var packet in gpsSatellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  gpsL2Satellites.values.forEach((packet) {
+  for (var packet in gpsL2Satellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  gpsL5Satellites.values.forEach((packet) {
+  for (var packet in gpsL5Satellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  glnSatellites.values.forEach((packet) {
+  for (var packet in glnSatellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  glnL2Satellites.values.forEach((packet) {
+  for (var packet in glnL2Satellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  galSatellites.values.forEach((packet) {
+  for (var packet in galSatellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  galL5aSatellites.values.forEach((packet) {
+  for (var packet in galL5aSatellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  galL5bSatellites.values.forEach((packet) {
+  for (var packet in galL5bSatellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  bdsSatellites.values.forEach((packet) {
+  for (var packet in bdsSatellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
-  bdsL2Satellites.values.forEach((packet) {
+  for (var packet in bdsL2Satellites.values) {
     result.add({
       'Навигационный сигнал': packet.type.toString(),
       'Номер НКА': packet.sgnID.toString(),
       'ОСШ': packet.q.toString(),
     });
-  });
+  }
 
   return result;
 }

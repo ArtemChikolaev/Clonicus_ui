@@ -130,7 +130,7 @@ class IsolateManager {
         _streamController?.add(message);
       } else if (message is Map<String, dynamic>) {
         if (message.containsKey('error')) {
-          print('Error during parsing: ${message['error']}');
+          // print('Error during parsing: ${message['error']}');
         }
       }
     });
@@ -152,10 +152,10 @@ class IsolateManager {
         sendPort.send(data); // Отправляем данные в главный изолят
       }
     }, onDone: () {
-      print('Stream completed, sending done message...');
+      // print('Stream completed, sending done message...');
       sendPort.send('done'); // Отправляем сообщение о завершении
     }, onError: (error) {
-      print('Stream error: $error');
+      // print('Stream error: $error');
       sendPort.send({
         'error': error.toString()
       });

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'receiver_50packet_widget_coord.dart';
@@ -199,7 +201,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
                                   bool stopResult = await notifier.stopContinuousParsingTcp(parse, context);
                                   _showSnackBar(context, 'Parsing failed or manually stopped');
                                   if (stopResult) {
-                                    print('Parsing stopped automatically due to error or timeout');
+                                    // print('Parsing stopped automatically due to error or timeout 2');
                                   }
                                 }
                               },

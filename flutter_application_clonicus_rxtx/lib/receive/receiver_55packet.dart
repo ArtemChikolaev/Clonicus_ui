@@ -83,41 +83,41 @@ Future<List<Map<String, String>>> processFiftyFivePacketData(List<String> rawDat
   List<Map<String, String>> result = [];
 
   // Добавляем данные для каждой системы
-  gpsSatellites.values.forEach((packet) {
+  for (var packet in gpsSatellites.values) {
     result.add({
       'Система ГНСС': 'GPS',
       'Номер НКА': packet.satID.toString(),
       'Азимут': packet.azimuth.toString(),
       'Угол места': packet.elevation.toString(),
     });
-  });
+  }
 
-  glnSatellites.values.forEach((packet) {
+  for (var packet in glnSatellites.values) {
     result.add({
       'Система ГНСС': 'GLN',
       'Номер НКА': packet.satID.toString(),
       'Азимут': packet.azimuth.toString(),
       'Угол места': packet.elevation.toString(),
     });
-  });
+  }
 
-  galSatellites.values.forEach((packet) {
+  for (var packet in galSatellites.values) {
     result.add({
       'Система ГНСС': 'GAL',
       'Номер НКА': packet.satID.toString(),
       'Азимут': packet.azimuth.toString(),
       'Угол места': packet.elevation.toString(),
     });
-  });
+  }
 
-  bdsSatellites.values.forEach((packet) {
+  for (var packet in bdsSatellites.values) {
     result.add({
       'Система ГНСС': 'BDS',
       'Номер НКА': packet.satID.toString(),
       'Азимут': packet.azimuth.toString(),
       'Угол места': packet.elevation.toString(),
     });
-  });
+  }
 
   return result;
 }

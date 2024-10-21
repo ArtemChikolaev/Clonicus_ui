@@ -96,7 +96,7 @@ class SRNSParser {
       _totalRecordingTime = determineRecordingTime(fileSize);
       _chunkSize = (fileSize / _totalRecordingTime).ceil();
 
-      print('Total recording time: $_totalRecordingTime seconds, Chunk size: $_chunkSize bytes');
+      // print('Total recording time: $_totalRecordingTime seconds, Chunk size: $_chunkSize bytes');
 
       _protocol.packetStream.listen((packetData) {
         _streamController.add([
@@ -109,7 +109,7 @@ class SRNSParser {
 
         if (_filePosition >= currentFileSize) {
           if (!_fileEndReached) {
-            print('File fully read. Total preambles found: ${_protocol.totalPreamblesCount}');
+            // print('File fully read. Total preambles found: ${_protocol.totalPreamblesCount}');
             _fileEndReached = true;
 
             // Закрываем поток данных после завершения чтения файла

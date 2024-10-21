@@ -135,6 +135,7 @@ class ReceiverNotifier extends ChangeNotifier {
     return false; // Парсер не был запущен
   }
 
+  // Запуск парсера с отслеживанием таймера
   Future<int> startContinuousParsingTcp(bool parse, BuildContext context) async {
     if (_isDisposed) return -1;
 
@@ -143,7 +144,7 @@ class ReceiverNotifier extends ChangeNotifier {
 
       if (result == -1) {
         _isParserActive = false;
-        print('Parser stopped due to timeout or error, stopping parsing...');
+        // print('Parser stopped due to timeout or error, stopping parsing...');
       } else {
         _isParserActive = true;
       }
@@ -151,17 +152,19 @@ class ReceiverNotifier extends ChangeNotifier {
       _notifyIfNotDisposed();
 
       // Подписываемся на уведомление о завершении парсинга
-      _parsingService.parsingCompleteNotifier.addListener(() {
+      _parsingService.parsingCompleteNotifier.addListener(() async {
         _isParserActive = false;
         _notifyIfNotDisposed();
 
-        // Показываем SnackBar по завершению парсинга
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('TCP parsing complete')),
-        );
+        // Показываем SnackBar, если парсинг остановился из-за таймаута
+        if (!_isParserActive) {
+          // Показываем SnackBar при тайм-ауте или иных проблемах со стороны TCP-порта
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Parser stopped due to timeout or error')),
+          );
+        }
       });
 
-      _notifyIfNotDisposed();
       return result;
     } catch (e) {
       print('Error during TCP parsing: $e');
@@ -182,29 +185,12 @@ class ReceiverNotifier extends ChangeNotifier {
       if (result == -1) {
         _isParserActive = false; // Обновляем флаг активности парсера
         _notifyIfNotDisposed();
-        print('Successfully stopped continuous parsing');
         return true; // Парсер успешно остановлен
       } else {
-        print('Error: Parsing was not stopped as expected');
         return false; // Ошибка при остановке
       }
     } catch (e) {
-      print('Error stopping continuous parsing: $e');
       return false; // Ошибка при остановке
-    }
-  }
-
-  void _clearData() {
-    _gpsLocation = null;
-    _gpsHeight = null;
-    _glnLocation = null;
-    _glnHeight = null;
-    _galLocation = null;
-    _galHeight = null;
-    _bdsLocation = null;
-    _bdsHeight = null;
-    if (!_isDisposed) {
-      notifyListeners(); // Обновляем состояние после очистки данных
     }
   }
 
