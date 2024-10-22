@@ -96,7 +96,7 @@ class ParsingService {
 
     void resetTimeoutTimer() {
       timeoutTimer?.cancel();
-      timeoutTimer = Timer(Duration(seconds: timeoutInSeconds), () async {
+      timeoutTimer = Timer(const Duration(seconds: timeoutInSeconds), () async {
         print('Timeout: No data received within $timeoutInSeconds seconds');
 
         // Останавливаем парсер из-за таймаута

@@ -38,6 +38,7 @@ dependencies:
   flutter_map: ^7.0.2
   syncfusion_flutter_gauges: ^27.1.51
   desktop_window: ^0.4.0
+  google_fonts: ^6.2.1
 
 
   # The following adds the Cupertino Icons font to your application.

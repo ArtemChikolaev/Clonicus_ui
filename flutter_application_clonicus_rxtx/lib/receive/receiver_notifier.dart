@@ -167,7 +167,7 @@ class ReceiverNotifier extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      print('Error during TCP parsing: $e');
+      // print('Error during TCP parsing: $e');
       _isParserActive = false;
       _notifyIfNotDisposed();
       return -1;

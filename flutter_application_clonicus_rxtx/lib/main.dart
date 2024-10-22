@@ -75,7 +75,7 @@ class HomePage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const BashTerminalPage()),
+                  MaterialPageRoute(builder: (context) => const BashPage()),
                 );
               },
             ),
