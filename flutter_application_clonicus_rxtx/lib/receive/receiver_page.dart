@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'receiver_50packet_widget_coord.dart';
-import 'receiver_50packet_widget_map.dart';
+// import 'receiver_50packet_widget_map.dart';
 import 'receiver_50packet_widget_marker.dart';
 import 'receiver_50packet_widget_speed.dart';
 import 'receiver_55packet_widget_skyplot.dart';
@@ -76,6 +76,7 @@ class ReceiverPageState extends State<ReceiverPage> with AutomaticKeepAliveClien
       key: ValueKey(_resetKey), // Обновляем ключ для полного пересоздания
       create: (_) => ReceiverNotifier(tcpProvider),
       child: Scaffold(
+        // backgroundColor: const Color.fromARGB(255, 44, 41, 41),
         appBar: AppBar(
           title: const Text('Receiver Page'),
           centerTitle: true,

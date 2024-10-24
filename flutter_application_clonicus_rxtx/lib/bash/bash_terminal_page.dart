@@ -45,7 +45,11 @@ class TerminalScreenState extends State<TerminalScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300), // Длительность анимации
+          curve: Curves.easeOut, // Плавная анимация
+        );
       }
     });
 
@@ -53,25 +57,29 @@ class TerminalScreenState extends State<TerminalScreen> {
       children: [
         Expanded(
           child: Container(
+            // height: 400.0, // Ограничиваем высоту списка (например, 400 пикселей)
             color: const Color.fromARGB(255, 44, 41, 41),
             child: ScrollbarTheme(
               data: ScrollbarThemeData(
-                thumbColor: WidgetStateProperty.all<Color>(Colors.white), // Цвет скроллбара
-                trackColor: WidgetStateProperty.all<Color>(Colors.grey.shade700), // Цвет трека
+                thumbColor: MaterialStateProperty.all<Color>(Colors.white), // Цвет скроллбара
+                trackColor: MaterialStateProperty.all<Color>(Colors.grey.shade700), // Цвет трека
                 radius: const Radius.circular(10), // Закругление для "большого пальца"
-                thickness: WidgetStateProperty.all<double>(6.0), // Толщина скроллбара
+                thickness: MaterialStateProperty.all<double>(6.0), // Толщина скроллбара
               ),
               child: Scrollbar(
                 controller: _scrollController,
                 thumbVisibility: true,
                 child: ListView.builder(
                   controller: _scrollController,
-                  itemCount: bash.output.length,
+                  itemCount: bash.output.length > 100 ? 100 : bash.output.length, // Ограничиваем вывод последними 100 строками
                   itemBuilder: (context, index) {
+                    // Показ последних 100 строк
+                    final outputIndex = bash.output.length > 100 ? bash.output.length - 100 + index : index;
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 8.0),
                       child: RichText(
-                        text: _buildColoredTextSpans(bash.output[index]),
+                        text: _buildColoredTextSpans(bash.output[outputIndex]),
                       ),
                     );
                   },
@@ -85,21 +93,38 @@ class TerminalScreenState extends State<TerminalScreen> {
           padding: const EdgeInsets.all(8.0),
           child: Row(
             children: [
-              Text(
-                "${bash.currentDirectory} \$ ",
-                style: TextStyle(
-                  color: Colors.green,
-                  fontFamily: GoogleFonts.frankRuhlLibre().fontFamily,
-                  fontSize: 14,
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'User: ',
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 69, 168, 248), // Цвет для текста "User"
+                        fontFamily: GoogleFonts.frankRuhlLibre().fontFamily,
+                        fontSize: 18,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '~${bash.currentDirectory} \$ ',
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 112, 231, 116), // Цвет для остального текста
+                        fontFamily: GoogleFonts.frankRuhlLibre().fontFamily,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
                 child: RawKeyboardListener(
                   focusNode: FocusNode(),
-                  onKey: (RawKeyEvent event) {
+                  onKey: (RawKeyEvent event) async {
                     if (event is RawKeyDownEvent) {
                       if (event.logicalKey == LogicalKeyboardKey.tab) {
-                        _handleTabAutocomplete(bash);
+                        String autocompletedCommand = await _handleTabAutocomplete(bash);
+                        // print('Autocompleted Command: $autocompletedCommand'); // Отладочный вывод
+                        _commandController.text = autocompletedCommand;
+                        _commandController.selection = TextSelection.fromPosition(TextPosition(offset: autocompletedCommand.length));
                       }
                     }
                   },
@@ -141,9 +166,10 @@ class TerminalScreenState extends State<TerminalScreen> {
     );
   }
 
-  void _handleTabAutocomplete(BashTerminal bash) async {
+  Future<String> _handleTabAutocomplete(BashTerminal bash) async {
     String command = _commandController.text;
     String newCommand = await bash.autoCompleteDirectory(command);
+
     setState(() {
       _commandController.text = newCommand;
       _commandController.selection = TextSelection.fromPosition(TextPosition(offset: newCommand.length));
@@ -151,6 +177,8 @@ class TerminalScreenState extends State<TerminalScreen> {
 
     // Восстанавливаем фокус после автодополнения
     _focusNode.requestFocus();
+
+    return newCommand; // Возвращаем новое значение
   }
 
   TextSpan _buildColoredTextSpans(String text) {
@@ -158,7 +186,7 @@ class TerminalScreenState extends State<TerminalScreen> {
     Color currentColor = Colors.white; // Цвет по умолчанию
 
     // Регулярное выражение для поиска преамбул
-    final regex = RegExp(r'(drwxrwxr-x|drwxrwxrwt|srwx------|prwxrwxrwx|drwx------|-rw-------|-rw-rw-r--|-rw-r-----|drwxrwxrwx|drwxr--r--|drwxr-xr-x|lrwxrwxrwx)');
+    final regex = RegExp(r'(drwxrwxr-x|drwxrwxrwt|srwx------|prwxrwxrwx|drwx------|-rw-------|-rw-rw-r--|-rw-r-----|drwxrwxrwx|drwxr--r--|drwxr-xr-x|lrwxrwxrwx|previous command:)');
     final matches = regex.allMatches(text);
 
     int lastMatchEnd = 0;
@@ -221,6 +249,8 @@ class TerminalScreenState extends State<TerminalScreen> {
       return Colors.white;
     } else if (preamble.startsWith('-rw-rw-r--')) {
       return Colors.white;
+    } else if (preamble.startsWith('previous command:')) {
+      return Colors.red;
     } else if (preamble.startsWith('-rw-r-----')) {
       return Colors.white;
     } else {

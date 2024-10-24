@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Для сохранения данных
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BashTerminal with ChangeNotifier {
   List<String> _output = [];
+  List<String> _commandHistory = [];
   String _currentDirectory = "/";
-  final List<String> _commandHistory = [];
   SharedPreferences? _prefs;
 
   List<String> get output => _output;
@@ -25,14 +25,19 @@ class BashTerminal with ChangeNotifier {
 
   Future<void> _loadHistory() async {
     List<String>? savedOutput = _prefs?.getStringList('bash_output');
+    List<String>? savedCommands = _prefs?.getStringList('bash_command_history');
     if (savedOutput != null) {
       _output = savedOutput;
+    }
+    if (savedCommands != null) {
+      _commandHistory = savedCommands;
     }
     notifyListeners();
   }
 
   Future<void> _saveHistory() async {
     await _prefs?.setStringList('bash_output', _output);
+    await _prefs?.setStringList('bash_command_history', _commandHistory);
   }
 
   Future<void> _saveCurrentDirectory() async {
@@ -45,22 +50,35 @@ class BashTerminal with ChangeNotifier {
       return;
     }
 
-    // Добавляем команду в историю
-    _commandHistory.add(command);
+    if (command == "prevcommand" || command == "prevcmd" || command == "prvcmd") {
+      showPreviousCommand();
+      return;
+    }
+
+    if (command == "clearcmd") {
+      clearCommandHistory();
+      return;
+    }
 
     if (command.startsWith('cd')) {
       command = await autoCompleteDirectory(command);
     }
 
+    if (command.startsWith('cat')) {
+      command = await autoCompleteFile(command);
+    }
+
     try {
       ProcessResult result = await Process.run(
-          'bash',
-          [
-            '-c',
-            command
-          ],
-          workingDirectory: _currentDirectory);
+        'bash',
+        [
+          '-c',
+          command
+        ],
+        workingDirectory: _currentDirectory,
+      );
       _output.add(">\$ $command");
+      _commandHistory.add(command); // Сохраняем команду в историю
 
       if (result.stdout.isNotEmpty) {
         _output.add(result.stdout.toString().trim());
@@ -73,6 +91,13 @@ class BashTerminal with ChangeNotifier {
         _changeDirectory(command);
       }
 
+      // Ограничиваем количество строк в выводе
+      const int lineLimit = 100; // Максимальное количество строк (можно изменить по необходимости)
+
+      while (_output.length > lineLimit) {
+        _output.removeAt(0); // Удаляем старые строки, если превышено количество строк
+      }
+
       notifyListeners();
       _saveHistory();
     } catch (e) {
@@ -81,23 +106,18 @@ class BashTerminal with ChangeNotifier {
     }
   }
 
-  // Обработка автодополнения директории
-  Future<String> autoCompleteDirectory(String command) async {
-    List<String> parts = command.split(' ');
-    if (parts.length > 1) {
-      String pathPart = parts[1].trim();
-      Directory currentDir = Directory(_currentDirectory);
-      List<FileSystemEntity> entities = currentDir.listSync();
+  void showPreviousCommand() {
+    // Отображаем историю предыдущих команд красным цветом
+    _output.addAll(_commandHistory.map((cmd) => "previous command: $cmd")); // Добавляем команды в вывод
+    notifyListeners();
+  }
 
-      List<String> possibleMatches = entities.where((entity) => entity is Directory && entity.path.split('/').last.startsWith(pathPart)).map((dir) => dir.path.split('/').last).toList();
-
-      if (possibleMatches.length == 1) {
-        String completedPath = possibleMatches.first;
-        return 'cd $completedPath';
-      }
-    }
-
-    return command;
+  void clearCommandHistory() {
+    // Очищаем историю команд
+    _commandHistory.clear();
+    _output.add("Command history cleared.");
+    _prefs?.remove('bash_command_history'); // Удаляем сохраненные данные из SharedPreferences
+    notifyListeners();
   }
 
   void _changeDirectory(String command) {
@@ -119,6 +139,57 @@ class BashTerminal with ChangeNotifier {
         _output.add("bash: cd: $path: No such file or directory");
       }
     }
+  }
+
+  Future<String> autoCompleteDirectory(String command) async {
+    List<String> parts = command.split(' ');
+    if (parts.length > 1) {
+      String pathPart = parts.last.trim();
+
+      // Определяем, является ли путь абсолютным или относительным
+      Directory searchDir;
+      if (pathPart.startsWith('/')) {
+        // Абсолютный путь, нормализуем путь для удаления лишних слешей
+        pathPart = pathPart.replaceAll(RegExp(r'/+'), '/');
+        searchDir = Directory('/');
+      } else {
+        // Относительный путь от текущей директории
+        searchDir = Directory(_currentDirectory);
+      }
+
+      // Получаем компоненты пути
+      List<String> pathComponents = pathPart.split('/');
+      String incompletePart = pathComponents.last; // Последняя часть пути для автодополнения
+      String basePath = pathComponents.sublist(0, pathComponents.length - 1).join('/');
+
+      // Если basePath непустой, ищем в конкретной директории
+      if (basePath.isNotEmpty) {
+        searchDir = Directory(pathPart.startsWith('/') ? '/$basePath' : '$_currentDirectory/$basePath');
+      }
+
+      if (await searchDir.exists()) {
+        List<FileSystemEntity> entities = searchDir.listSync();
+
+        // Ищем совпадения по неполному имени
+        List<String> possibleMatches = entities.where((entity) => entity is Directory && entity.path.split('/').last.startsWith(incompletePart)).map((dir) => dir.path.split('/').last).toList();
+
+        if (possibleMatches.length == 1) {
+          // Строим полный путь, добавляя найденную директорию
+          String completedPath = possibleMatches.first;
+          String finalPath = basePath.isNotEmpty ? '$basePath/$completedPath' : completedPath;
+
+          // Если путь абсолютный, добавляем "/", если относительный — нет
+          String normalizedPath = (pathPart.startsWith('/') ? '/$finalPath' : '$finalPath').replaceAll(RegExp(r'/+'), '/'); // Нормализуем путь
+          return 'cd $normalizedPath';
+        }
+      }
+    }
+
+    return command; // Возвращаем исходную команду, если не найдено совпадений
+  }
+
+  Future<String> autoCompleteFile(String command) async {
+    return command;
   }
 
   void clearOutput() {
